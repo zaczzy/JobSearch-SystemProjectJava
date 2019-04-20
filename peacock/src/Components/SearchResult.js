@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import styled from 'styled-components'
+import { Skeleton } from 'antd';
 
 const Card = styled.div`
   width: 50vw;
@@ -38,11 +39,14 @@ const Excerpt = styled.div`
   color: #666666;
 `
 
-const SearchResult = ({result}) => (
+const SearchResult = ({result, isLoading}) => (
   <Card>
-    <TitleLink><a href={result.url}>{result.title}</a></TitleLink>
-    <UrlText>{result.url}</UrlText>
-    <Excerpt>{result.exerpt}</Excerpt>
+    {isLoading && <Skeleton active />}
+    {!isLoading && <div>
+      <TitleLink><a href={result.url}>{result.title}</a></TitleLink>
+      <UrlText>{result.url}</UrlText>
+      <Excerpt>{result.exerpt}</Excerpt>
+      </div> }
   </Card>
 )
 
