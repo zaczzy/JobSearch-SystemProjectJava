@@ -1,24 +1,30 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
 import './App.css';
+import 'antd/dist/antd.css'
+import styled from 'styled-components'
+import SearchBar from './Components/SearchBar'
+
+const Title = styled.h1`
+  font-size: 72px;
+  background: -webkit-linear-gradient(45deg, #09009f, #00ff95);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+`
+
+const FootNote = styled.h6`
+  margin-top: 40px;
+  font-size: 16px;
+  color: #cccccc;
+`
 
 class App extends Component {
   render() {
     return (
       <div className="App">
         <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
+          <Title>Askme.fyi</Title>
+          <SearchBar></SearchBar>
+          <FootNote>&copy; A CIS 555 Demo, Han Yan, Yujiang Duan, Zeyu Zhao, Zhilei Zheng, 2019</FootNote>
         </header>
       </div>
     );
