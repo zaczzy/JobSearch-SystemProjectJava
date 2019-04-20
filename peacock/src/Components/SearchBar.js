@@ -5,9 +5,7 @@ import styled from 'styled-components'
 const Search = Input.Search;
 
 const AutoCompleteWrapper = styled(AutoComplete)`
-  width: 50vw;
-  min-width: 500px;
-  height: 60px;
+  min-width: 300px;
   line-height: 20px;
   .ant-input {
     font-size: 16px;
@@ -45,6 +43,7 @@ export default class SearchBar extends Component {
           dropdownClassName="certain-category-search-dropdown"
           dropdownMatchSelectWidth={false}
           size="large"
+          style={{width: this.props.width}}
           dataSource={dataSource}
           onSearch={this.handleSearch}
           placeholder="Ask Me Anything.."
