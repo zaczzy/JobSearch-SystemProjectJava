@@ -1,6 +1,5 @@
-import React, { Component } from 'react'
+import React from 'react'
 import styled from 'styled-components'
-import ResultsData from './../FakeData/FakeResults'
 import SearchResult from "./SearchResult"
 import { connect } from 'react-redux'
 
@@ -15,7 +14,7 @@ const SearchResultsPanel = ({results, isLoading}) => (
   <Wrapper>
     { !isLoading && <SearchSummary>About 3000 results in 200ms</SearchSummary> }
     {results.map((result, index) => (
-      <SearchResult result={result} isLoading={isLoading}></SearchResult>
+      <SearchResult result={result} isLoading={isLoading} key={index}></SearchResult>
     ))}
   </Wrapper>
 )

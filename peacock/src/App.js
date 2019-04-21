@@ -9,15 +9,18 @@ import configureStore, { history } from './Redux'
 
 const store = configureStore()
 
-const App = () => (
-  <Provider store={store}>
-    <ConnectedRouter history={history}>
-      <Switch>
-        <Route exact path="/" component={HomePage} />
-        <Route path="/search" component={ResultPage} />
-      </Switch>
-    </ConnectedRouter>
-  </Provider>
-);
+export default class App extends Component {
 
-export default App;
+  render() {
+    return (
+      <Provider store={store}>
+        <ConnectedRouter history={history}>
+          <Switch>
+            <Route exact path="/" component={HomePage} />
+            <Route path="/search" component={ResultPage} />
+          </Switch>
+        </ConnectedRouter>
+      </Provider>
+    )
+  }
+}

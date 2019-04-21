@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import styled from 'styled-components'
 import SearchBar from './SearchBar'
+import { Link } from 'react-router-dom'
 
 const NavWrapper = styled.div`
   width: 100vw;
@@ -30,7 +31,7 @@ export default class Navbar extends Component {
   render() {
     return ( 
       <NavWrapper>
-        <Title>Askme.fyi</Title>
+        <Link to="/"><Title>Askme.fyi</Title></Link>
         <SearchBar width="35vw"></SearchBar>
       </NavWrapper>
     )

@@ -38,8 +38,6 @@ class SearchBar extends Component {
   }
 
   search = (value) => {
-    console.log("dispatch: " + value);
-    console.log(this.props);
     this.props.dispatch(push('/search?query=' + value))
     this.props.dispatch(startSearch())
     const shuffled = ResultsData.sort(() => 0.5 - Math.random());
