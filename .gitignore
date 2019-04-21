@@ -1,5 +1,6 @@
 .DS_Store
 .idea
+yarn.lock
 beaver.iml
 package-lock.json
 target
