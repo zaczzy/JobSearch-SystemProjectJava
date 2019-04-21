@@ -1,13 +1,16 @@
 import React, { Component } from 'react'
 import { Input, AutoComplete } from 'antd';
 import styled from 'styled-components'
+import ResultsData from './../FakeData/FakeResults'
+import { connect } from 'react-redux'
+import { startSearch, setResults } from '../Redux/Actions'
+
+import { push } from 'connected-react-router'
 
 const Search = Input.Search;
 
 const AutoCompleteWrapper = styled(AutoComplete)`
-  width: 50vw;
-  min-width: 500px;
-  height: 60px;
+  min-width: 300px;
   line-height: 20px;
   .ant-input {
     font-size: 16px;
@@ -17,7 +20,7 @@ const AutoCompleteWrapper = styled(AutoComplete)`
   }
 `
 
-export default class SearchBar extends Component {
+class SearchBar extends Component {
 
   /* TODO: state loading from API call */
   state = {
@@ -34,10 +37,17 @@ export default class SearchBar extends Component {
     });
   }
 
+  search = (value) => {
+    this.props.dispatch(push('/search?query=' + value))
+    this.props.dispatch(startSearch())
+    const shuffled = ResultsData.sort(() => 0.5 - Math.random());
+    let selected = shuffled.slice(0, 15);
+    setTimeout(function(props){ props.dispatch(setResults(selected)); }, 900, this.props);
+  }
+
   render() {
     const { dataSource } = this.state;
 
-    /* TODO: change onSearch Method */
     return (
       <div className="certain-category-search-wrapper">
         <AutoCompleteWrapper
@@ -45,13 +55,16 @@ export default class SearchBar extends Component {
           dropdownClassName="certain-category-search-dropdown"
           dropdownMatchSelectWidth={false}
           size="large"
+          style={{width: this.props.width}}
           dataSource={dataSource}
           onSearch={this.handleSearch}
           placeholder="Ask Me Anything.."
         >
-          <Search onSearch={value => console.log(value)} />
+          <Search onSearch={value => this.search(value)} />
         </AutoCompleteWrapper>
       </div>
     )
   }
 }
+
+export default connect()(SearchBar)

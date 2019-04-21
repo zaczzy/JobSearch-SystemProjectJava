@@ -1,34 +1,26 @@
 import React, { Component } from 'react';
-import './App.css';
-import 'antd/dist/antd.css'
-import styled from 'styled-components'
-import SearchBar from './Components/SearchBar'
+import HomePage from './PageComponents/HomePage'
+import ResultPage from './PageComponents/ResultPage'
 
-const Title = styled.h1`
-  font-size: 72px;
-  background: -webkit-linear-gradient(45deg, #09009f, #00ff95);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-`
+import { Provider } from 'react-redux'
+import { Route, Switch } from 'react-router'
+import { ConnectedRouter } from 'connected-react-router'
+import configureStore, { history } from './Redux'
 
-const FootNote = styled.h6`
-  margin-top: 40px;
-  font-size: 16px;
-  color: #cccccc;
-`
+const store = configureStore()
 
-class App extends Component {
+export default class App extends Component {
+
   render() {
     return (
-      <div className="App">
-        <header className="App-header">
-          <Title>Askme.fyi</Title>
-          <SearchBar></SearchBar>
-          <FootNote>&copy; A CIS 555 Demo, Han Yan, Yujiang Duan, Zeyu Zhao, Zhilei Zheng, 2019</FootNote>
-        </header>
-      </div>
-    );
+      <Provider store={store}>
+        <ConnectedRouter history={history}>
+          <Switch>
+            <Route exact path="/" component={HomePage} />
+            <Route path="/search" component={ResultPage} />
+          </Switch>
+        </ConnectedRouter>
+      </Provider>
+    )
   }
 }
-
-export default App;
