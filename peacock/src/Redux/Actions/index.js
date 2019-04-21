@@ -5,9 +5,20 @@ export const startSearch = () => ({
 })
 
 export const setResults = (data) => {
-  console.log("called")
   return {
     type: Actions.SET_RESULTS,
     data: data
+  }
+}
+
+export const startWebSearch = () => ({
+  type: Actions.START_WEB_SEARCH
+})
+
+export const setWebResults = (type, data) => {
+  return {
+    type: Actions.SET_WEB_RESULT,
+    resultType: type,
+    resultData: data,
   }
 }
