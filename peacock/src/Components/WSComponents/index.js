@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React from 'react'
 import WeatherComp from "./Weather"
 import ShoppingComp from "./Shopping"
 import { ResultType } from "../../Redux/Constants"

@@ -1,7 +1,6 @@
-import React, { Component } from 'react'
+import React from 'react'
 import styled from 'styled-components'
 import { Card } from 'antd';
-const { Meta } = Card;
 
 const Wrapper = styled.div`
   overflow-x: scroll;

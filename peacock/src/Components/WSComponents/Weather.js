@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React from 'react'
 import WeatherIcon from 'react-icons-weather';
 import styled from 'styled-components'
 
@@ -28,10 +28,10 @@ const kToC = (k) => {
   return (k - 273.15).toFixed(2)
 }
 
-const getDateString = (m) => {
-  const date = new Date(m);
-  return date.toDateString
-}
+// const getDateString = (m) => {
+//   const date = new Date(m);
+//   return date.toDateString
+// }
 
 const WeatherComp = ({data}) => {
   return (
