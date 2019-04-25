@@ -2,9 +2,7 @@ import {Actions} from "../Constants"
 
 const defaultState = {
   IS_LOADING : true,
-  SEARCH_RESULTS : [{}, {}, {}],
-  HAS_WEB_RESULT : false,
-  WEB_RESULT : null
+  SEARCH_RESULTS : [{}, {}, {}]
 }
 
 const ResultsReducer = (state = defaultState, action) => {

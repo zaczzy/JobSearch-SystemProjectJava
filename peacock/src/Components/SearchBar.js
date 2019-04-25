@@ -1,11 +1,15 @@
 import React, { Component } from 'react'
 import { Input, AutoComplete } from 'antd';
 import styled from 'styled-components'
-import ResultsData from './../FakeData/FakeResults'
 import { connect } from 'react-redux'
-import { startSearch, setResults } from '../Redux/Actions'
+import { startSearch, setResults, startWebSearch, setWebResults } from '../Redux/Actions'
 
 import { push } from 'connected-react-router'
+import { ResultType } from './../Redux/Constants'
+
+import ResultsData from './../FakeData/FakeResults'
+import ShoppingData from './../FakeData/FakeShopping'
+import WeatherData from './../FakeData/FakeWeather'
 
 const Search = Input.Search;
 
@@ -37,12 +41,30 @@ class SearchBar extends Component {
     });
   }
 
+  /**
+   * This method is now only serving template data
+   * TODO: Implement Real Search
+   */
   search = (value) => {
     this.props.dispatch(push('/search?query=' + value))
     this.props.dispatch(startSearch())
+    this.props.dispatch(startWebSearch())
     const shuffled = ResultsData.sort(() => 0.5 - Math.random());
     let selected = shuffled.slice(0, 15);
     setTimeout(function(props){ props.dispatch(setResults(selected)); }, 900, this.props);
+    if (value.includes("weather")) {
+      setTimeout(function(props){ 
+        props.dispatch(setWebResults(ResultType.WEATHER_TYPE, WeatherData)); 
+      }, 300, this.props);
+    } else if (value.includes("shop")) {
+      setTimeout(function(props){ 
+        props.dispatch(setWebResults(ResultType.SHOPPING_TYPE, ShoppingData)); 
+      }, 300, this.props);
+    } else {
+      setTimeout(function(props){ 
+        props.dispatch(setWebResults(ResultType.NONE_TYPE, {})); 
+      }, 300, this.props);
+    }
   }
 
   render() {
