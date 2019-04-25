@@ -1,44 +1,30 @@
-import java.io.IOException;
-import java.util.StringTokenizer;
+/**
+ * Main Indexer class
+ */
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import edu.stanford.nlp.coref.data.CorefChain;
+//import edu.stanford.nlp.ling.*;
+import edu.stanford.nlp.ie.util.*;
+import edu.stanford.nlp.pipeline.*;
+import edu.stanford.nlp.semgraph.*;
+import edu.stanford.nlp.trees.*;
+import edu.stanford.nlp.simple.*;
+import java.util.*;
 
 public class Indexer {
-    public static class IndexerMapper extends Mapper<Object, Text, Text, Text> {
+    public static String text = "After hearing about Joe's trip, Jane decided she might go to France one day.";
 
-        @Override
-        public void map(Object key, Text doc, Context context) throws IOException, InterruptedException {
-
+    public static void main(String args[]) {
+        Document doc = new Document("add your texts here! It can contain multiple sentences.");
+        for (Sentence sent : doc.sentences()) {  // Will iterate over two sentences
+            // We're only asking for words -- no need to load any models yet
+            System.out.println("The second word of the sentence '" + sent + "' is " + sent.word(1));
+            // When we ask for the lemma, it will load and run the part of speech tagger
+            System.out.println("The third lemma of the sentence '" + sent + "' is " + sent.lemma(2));
+            // When we ask for the parse, it will load and run the parser
+            System.out.println("The parse of the sentence '" + sent + "' is " + sent.parse());
+            // ...
         }
-    }
 
-    public static class IndexerReducer extends Reducer<Text, Text, Text, Text> {
-        @Override
-        public void reduce(Text word, Iterable<Text> values, Context context)
-                throws IOException, InterruptedException {
-
-        }
-    }
-
-    public static void main(String[] args) throws Exception {
-        Configuration conf = new Configuration();
-        Job job = new Job(conf, "indexer");
-        job.setJarByClass(Indexer.class);
-        job.setMapperClass(IndexerMapper.class);
-        job.setCombinerClass(IndexerReducer.class);
-        job.setReducerClass(IndexerReducer.class);
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
-        //TODO: input / output path
-
-        System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
