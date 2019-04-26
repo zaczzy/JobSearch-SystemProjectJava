@@ -2,6 +2,10 @@
  * Main Indexer class
  */
 
+import bolt.DocParserBolt;
+import bolt.SenderBolt;
+import bolt.WordGroupingBolt;
+import spout.DocSpout;
 import edu.stanford.nlp.coref.data.CorefChain;
 //import edu.stanford.nlp.ling.*;
 import edu.stanford.nlp.ie.util.*;
@@ -9,22 +13,40 @@ import edu.stanford.nlp.pipeline.*;
 import edu.stanford.nlp.semgraph.*;
 import edu.stanford.nlp.trees.*;
 import edu.stanford.nlp.simple.*;
+import org.apache.storm.Config;
+import org.apache.storm.LocalCluster;
+import org.apache.storm.topology.TopologyBuilder;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.utils.Utils;
+import org.apache.storm.topology.IRichBolt;
+import org.apache.storm.topology.IRichSpout;
+import spout.DocSpout;
+
 import java.util.*;
 
 public class Indexer {
     public static String text = "After hearing about Joe's trip, Jane decided she might go to France one day.";
 
     public static void main(String args[]) {
-        Document doc = new Document("add your texts here! It can contain multiple sentences.");
-        for (Sentence sent : doc.sentences()) {  // Will iterate over two sentences
-            // We're only asking for words -- no need to load any models yet
-            System.out.println("The second word of the sentence '" + sent + "' is " + sent.word(1));
-            // When we ask for the lemma, it will load and run the part of speech tagger
-            System.out.println("The third lemma of the sentence '" + sent + "' is " + sent.lemma(2));
-            // When we ask for the parse, it will load and run the parser
-            System.out.println("The parse of the sentence '" + sent + "' is " + sent.parse());
-            // ...
-        }
+        TopologyBuilder builder = new TopologyBuilder();
 
+        builder.setSpout("spout", new DocSpout(), 1);
+        builder.setBolt("parser", new DocParserBolt(), 2).shuffleGrouping("spout");
+        builder.setBolt("grouping", new WordGroupingBolt(), 2).fieldsGrouping("parser", new Fields("Id"));
+        builder.setBolt("sender", new SenderBolt(), 1).shuffleGrouping("grouping");
+
+        Config conf = new Config();
+        // set up parallelism
+        conf.setNumWorkers(2);
+        //conf.setDebug(true);
+
+        String topologyName = "Indexer";
+
+        LocalCluster cluster = new LocalCluster();
+        cluster.submitTopology(topologyName, conf, builder.createTopology());
+
+        Utils.sleep(10000);
+        cluster.killTopology(topologyName);
+        cluster.shutdown();
     }
 }

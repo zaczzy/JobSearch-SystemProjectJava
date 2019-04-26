@@ -27,7 +27,7 @@ public class DocObj {
 
     public void addFreq(String word, int weight) {
         Integer val = freqs.get(word);
-        freqs.put(word, val == null? (val.intValue()+weight) : weight);
+        freqs.put(word, val != null? (val.intValue()+weight) : weight);
     }
 
     public Set<String> getAllWords() {

@@ -4,6 +4,7 @@ import model.DocObj;
 import org.apache.storm.Config;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.IRichBolt;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
@@ -22,6 +23,7 @@ import edu.stanford.nlp.simple.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Bolt One
@@ -32,8 +34,10 @@ import java.util.Map;
  * Note: apply stopwords, lemmatization, stemming, etc
  */
 
-public class DocParserBolt extends BaseRichBolt {
+public class DocParserBolt implements IRichBolt {
     private OutputCollector collector;
+    String executorId = UUID.randomUUID().toString();
+
     private static int title_w = 5;
     private static int meta_w = 4;
     private static int headerOne_w = 2;
@@ -109,5 +113,15 @@ public class DocParserBolt extends BaseRichBolt {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("Id", "word", "position", "weight"));
+    }
+
+    @Override
+    public void cleanup() {
+
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return null;
     }
 }
