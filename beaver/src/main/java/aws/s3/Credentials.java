@@ -1,4 +1,4 @@
-package s3;
+package aws.s3;
 
 import software.amazon.awssdk.regions.Region;
 

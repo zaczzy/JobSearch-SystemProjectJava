@@ -1,6 +1,5 @@
-package s3;
+package aws.s3;
 
-import s3.S3Service;
 import java.io.IOException;
 import java.util.List;
 
