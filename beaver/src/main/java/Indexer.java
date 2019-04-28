@@ -1,4 +1,5 @@
 import aws.rds.DBManager;
+import bolt.DocDownloaderBolt;
 import bolt.DocParserBolt;
 import bolt.SenderBolt;
 import bolt.WordGroupingBolt;
@@ -19,9 +20,10 @@ public class Indexer {
         TopologyBuilder builder = new TopologyBuilder();
 
         builder.setSpout("spout", new DocSpout(), 1);
-        builder.setBolt("parser", new DocParserBolt(), 2).shuffleGrouping("spout");
+        builder.setBolt("downloader", new DocDownloaderBolt(), 3).shuffleGrouping("spout");
+        builder.setBolt("parser", new DocParserBolt(), 4).shuffleGrouping("downloader");
         builder.setBolt("grouping", new WordGroupingBolt(), 2).fieldsGrouping("parser", new Fields("Id"));
-        builder.setBolt("sender", new SenderBolt(), 1).shuffleGrouping("grouping");
+        builder.setBolt("sender", new SenderBolt(), 10).shuffleGrouping("grouping");
 
         Config conf = new Config();
         /* set up parallelism */
@@ -36,7 +38,11 @@ public class Indexer {
         cluster.submitTopology(topologyName, conf, builder.createTopology());
 
         /* Shutdown*/
-        Utils.sleep(10000);
+        try {
+            Thread.sleep(25000);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         cluster.killTopology(topologyName);
         cluster.shutdown();
 

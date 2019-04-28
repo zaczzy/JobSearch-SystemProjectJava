@@ -74,6 +74,7 @@ public class DocParserBolt implements IRichBolt {
         //Parse meta data
         for(Element ele : meta) {
             String text = ele.text();
+            if (text.length() < 2) { continue; }
             lemmas = new Sentence(text).lemmas();
             for(String lemma : lemmas) {
                 collector.emit(new Values(id, lemma, pos, meta_w));

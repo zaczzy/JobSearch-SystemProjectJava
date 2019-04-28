@@ -1,6 +1,8 @@
 package aws.rds;
 import model.Word;
 import org.javalite.activejdbc.Base;
+import org.javalite.activejdbc.DBException;
+
 import java.util.ArrayDeque;
 import java.util.Queue;
 
@@ -30,8 +32,8 @@ public class DBManager {
      *  Configure Instance
      */
     private DBManager() {
-        workerPool = new DBWorker[4];
-        for (int i = 0; i < 4; i ++) {
+        workerPool = new DBWorker[16];
+        for (int i = 0; i < workerPool.length; i ++) {
             workerPool[i] = new DBWorker();
         }
         commitQueue = new CommitQueue();
@@ -127,10 +129,21 @@ public class DBManager {
             while (started) {
                 Commit commit = commitQueue.poll();
                 if (commit != null) {
-                    Word.createIt("word", commit.word,
-                                  "docId", commit.docId,
-                                  "hits", commit.hits,
-                                  "tf", commit.tf);
+                    /* TODO: This is a quite arbitrary filter */
+                    if (commit.hits.length() > 16000 ||
+                            commit.word.length() < 2 ||
+                            commit.word.length() > 32) {
+                        continue;
+                    }
+                    try {
+                        Word.createIt("word", commit.word,
+                                "docId", commit.docId,
+                                "hits", commit.hits,
+                                "tf", commit.tf);
+                    } catch (DBException e) {
+                        System.err.println("[ ❌ Error ] " + e.getMessage());
+                        System.err.println("[ 🧨 Cause ] #" + commit.word + "# with " + commit.hits);
+                    }
                 }
             }
             Base.close();

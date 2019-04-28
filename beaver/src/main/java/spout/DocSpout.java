@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.List;
 import java.util.Random;
+
+import aws.s3.S3Service;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichSpout;
@@ -19,27 +21,24 @@ import org.apache.storm.tuple.Values;
 public class DocSpout implements IRichSpout {
 
     private SpoutOutputCollector collector;
-    //Data structure for testing purpose
-    private List<String> documents = new ArrayList<String>();
-    private int index = 0;
+    int index = 0;
+    List<String> fileNames;
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("Id", "doc"));
+        declarer.declare(new Fields("docName"));
     }
 
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-        documents.add("<html><head><title>Amy</title></head><body>My name is Amy. I likes singing.</body></html>");
-        documents.add("<html><head><title>France</title></head><body>In 2017, he went to Paris, France in the summer.</body></html>");
-        documents.add("<html><head><title>Jane</title></head><body>After hearing about Joe's trip, Jane decided she might go to France one day.</body></html>");
         this.collector = collector;
+        fileNames = S3Service.getInstance().listAllFiles("documents/1/");
     }
 
     @Override
     public void nextTuple() {
-        if(index < 3) {
-            collector.emit(new Values(index, documents.get(index)));
+        if (index < fileNames.size()) {
+            collector.emit(new Values(fileNames.get(index)));
             index++;
         }
     }
