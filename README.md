@@ -10,7 +10,7 @@
 #### Core Components
 1. Beaver - Indexer (Hadoop)
 2. Dandelion - PageRank (Apache Spark)
-3. [] - Crawler
+3. Marmot - Crawler
 4. [] - Engine (Spark Framework)
 5. Peacock - Frontend (React JS)
   
