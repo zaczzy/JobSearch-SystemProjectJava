@@ -1,16 +1,14 @@
 package crawler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import crawler.handlers.AddURLHandler;
 import crawler.info.RobotsTxtInfo;
 import crawler.info.URLInfo;
 import model.CrawlerConfig;
 import org.apache.logging.log4j.Level;
-import stormlite.Config;
-import stormlite.LocalCluster;
-import stormlite.Topology;
-import stormlite.TopologyBuilder;
-import stormlite.tuple.Fields;
+import org.apache.storm.Config;
+import org.apache.storm.LocalCluster;
+import org.apache.storm.topology.TopologyBuilder;
+import org.apache.storm.tuple.Fields;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -108,22 +106,20 @@ public class WorkerServer {
 
     TopologyBuilder builder = new TopologyBuilder();
 
-    builder.setSpout(CRAWLER_QUEUE_SPOUT, spout, 20);
+    builder.setSpout(CRAWLER_QUEUE_SPOUT, spout, 5);
 
-    builder.setBolt(DOC_FETCHER_BOLT, docFetcherBolt, 20).shuffleGrouping(CRAWLER_QUEUE_SPOUT);
+    builder.setBolt(DOC_FETCHER_BOLT, docFetcherBolt, 5).shuffleGrouping(CRAWLER_QUEUE_SPOUT);
 
-    builder.setBolt(LINK_EXTRACTOR_BOLT, linkExtractorBolt, 20).fieldsGrouping(DOC_FETCHER_BOLT, new Fields("url"));
+    builder.setBolt(LINK_EXTRACTOR_BOLT, linkExtractorBolt, 5).fieldsGrouping(DOC_FETCHER_BOLT, new Fields("url"));
 
-    builder.setBolt(LINK_FILTER_BOLT, linkFilterBolt, 20).shuffleGrouping(LINK_EXTRACTOR_BOLT);
+    builder.setBolt(LINK_FILTER_BOLT, linkFilterBolt, 5).shuffleGrouping(LINK_EXTRACTOR_BOLT);
 
     LocalCluster cluster = new LocalCluster();
-    Topology topo = builder.createTopology();
-    ObjectMapper mapper = new ObjectMapper();
     URLInfo info = new URLInfo(getStartURL());
     String robotsLocation = info.isSecure() ? "https://" : "http://";
     robotsLocation += info.getHostName() + "/robots.txt";
     RobotsTxtInfo robotsTxtInfo = RobotsHelper.parseRobotsTxt(robotsLocation);
-    CrawlerTask task = new CrawlerTask(getStartURL(), null);
+    CrawlerTask task = new CrawlerTask(getStartURL(), robotsTxtInfo);
 
 
     if (RobotsHelper.isOKtoCrawl(info, getStartURL(), task) && RobotsHelper.isOKtoParse(info, robotsTxtInfo)) {

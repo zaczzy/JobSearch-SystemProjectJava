@@ -1,16 +1,14 @@
 package crawler;
 
 import model.CrawlerConfig;
-import stormlite.OutputFieldsDeclarer;
-import stormlite.TopologyContext;
-import stormlite.bolt.IRichBolt;
-import stormlite.bolt.OutputCollector;
-import stormlite.routers.IStreamRouter;
-import stormlite.tuple.Fields;
-import stormlite.tuple.Tuple;
-import stormlite.tuple.Values;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.IRichBolt;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
+import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -20,7 +18,7 @@ import java.util.UUID;
 
 public class LinkExtractorBolt implements IRichBolt {
 
-	static Logger log = LogManager.getLogger(LinkExtractorBolt.class);
+//	static Logger log = LogManager.getLogger(LinkExtractorBolt.class);
 	OutputCollector collector;
 	String executorId = UUID.randomUUID().toString();
 	Fields schema = new Fields("url");
@@ -41,12 +39,10 @@ public class LinkExtractorBolt implements IRichBolt {
 	 */
 	@Override
 	public void execute(Tuple input) {
-		if ((boolean) input.getObjectByField("isHtml")) {
-			log.debug("Start extracting links for " + input.getStringByField("url"));
-			Document doc = (Document) input.getObjectByField("content");
-			Elements links = doc.select("a[href]");
-			addNextPage(links);
-		}
+//		log.debug("Start extracting links for " + input.getStringByField("url"));
+		Document doc = Jsoup.parse(input.getStringByField("content"));
+		Elements links = doc.select("a[href]");
+		addNextPage(links);
 		CrawlerConfig.decreamentBuf();
 		if (CrawlerConfig.bufEmpty() && QueueFactory.getQueueInstance().isEmpty()) {
 			CrawlerConfig.setWhetherEnd(true);
@@ -56,36 +52,25 @@ public class LinkExtractorBolt implements IRichBolt {
 	/**
 	 * Called when this task is initialized
 	 *
-	 * @param stormConf
+	 * @param conf
 	 * @param context
 	 * @param collector
 	 */
 	@Override
-	public void prepare(Map<String, String> stormConf, TopologyContext context, OutputCollector collector) {
+	public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
 		this.collector = collector;
 	}
 
-	/**
-	 * Called during topology creation: sets the output router
-	 *
-	 * @param router
-	 */
-	@Override
-	public void setRouter(IStreamRouter router) {
-		this.collector.setRouter(router);
-	}
 
 	/**
 	 * Get the list of fields in the stream tuple
 	 *
 	 * @return
 	 */
-	@Override
 	public Fields getSchema() {
 		return this.schema;
 	}
 
-	@Override
 	public String getExecutorId() {
 		return this.executorId;
 	}
@@ -95,14 +80,24 @@ public class LinkExtractorBolt implements IRichBolt {
 		declarer.declare(this.schema);
 	}
 
+	/**
+	 * Declare configuration specific to this component. Only a subset of the "topology.*" configs can
+	 * be overridden. The component configuration can be further overridden when constructing the
+	 * topology using {@link }
+	 */
+	@Override
+	public Map<String, Object> getComponentConfiguration() {
+		return null;
+	}
+
 	private void addNextPage(Elements links) {
 		for (Element e : links) {
 			CrawlerConfig.increamentBuf();
 			String nextUrl = e.attr("abs:href");
 			if (!FilterSharedFactory.outerLinkSet.contains(nextUrl)) {
-				collector.emit(new Values<>(nextUrl));
+				collector.emit(new Values(nextUrl));
 				FilterSharedFactory.outerLinkSet.add(nextUrl);
-				log.debug(getExecutorId() + " emitting " + nextUrl);
+//				log.debug(getExecutorId() + " emitting " + nextUrl);
 			}
 		}
 	}

@@ -100,31 +100,8 @@ public class StorageFactory {
 					} else {
 						corpusSize++;
 					}
-					Doc doc = new Doc(id, url, document.outerHtml(), new Date(), md5, false);
+					Doc doc = new Doc(id, url, document.outerHtml(), new Date(), md5);
 					docMap.put(url, doc);
-					return id;
-				}
-
-				@Override
-				public int addDocument(String url, String documentContents, boolean isHtml) {
-					StringBuilder sb = new StringBuilder();
-					try {
-						MessageDigest md = MessageDigest.getInstance("MD5");
-						byte[] hashInBytes = md.digest(documentContents.getBytes());
-						for (byte b : hashInBytes) sb.append(String.format("%02x", b));
-					} catch (NoSuchAlgorithmException e) {
-						e.printStackTrace();
-					}
-					String md5 = sb.toString();
-					int id = corpusSize;
-					if (docMap.containsKey(url)) {
-						id = docMap.get(url).getId();
-					} else {
-						corpusSize++;
-					}
-					Doc doc = new Doc(id, url, documentContents, new Date(), md5, isHtml);
-					docMap.put(url, doc);
-					checkIfFull();
 					return id;
 				}
 
@@ -151,7 +128,7 @@ public class StorageFactory {
 					} else {
 						corpusSize++;
 					}
-					Doc doc = new Doc(id, url, documentContents, new Date(), md5, false);
+					Doc doc = new Doc(id, url, documentContents, new Date(), md5);
 					docMap.put(url, doc);
 					return id;
 				}

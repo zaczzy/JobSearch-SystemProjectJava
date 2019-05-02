@@ -3,8 +3,6 @@ package crawler;
 import crawler.info.RobotsTxtInfo;
 import crawler.info.URLInfo;
 import model.CrawlerConfig;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import storage.StorageFactory;
 import storage.StorageInterface;
 
@@ -24,7 +22,7 @@ public class RobotsHelper {
 	 * Returns true if it's permissible to fetch the content,
 	 * eg that it satisfies the path restrictions from robots.txt
 	 */
-	static Logger log = LogManager.getLogger(RobotsHelper.class);
+//	static Logger log = LogManager.getLogger(RobotsHelper.class);
 
 	static StorageInterface db = StorageFactory.getDatabaseInstance(CrawlerConfig.getDatabaseDir());
 
@@ -74,7 +72,7 @@ public class RobotsHelper {
 				((HttpsURLConnection)connection).setRequestMethod("HEAD");
 				if (((HttpsURLConnection) connection).getResponseCode() != 200) {
 					if (((HttpsURLConnection) connection).getResponseCode() == 304) {
-						log.info(OriURL + ": Not Modified");
+//						log.info(OriURL + ": Not Modified");
 						return false;
 					}
 				}

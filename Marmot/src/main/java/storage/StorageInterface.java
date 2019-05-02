@@ -20,7 +20,6 @@ public interface StorageInterface {
 
 	int addDocument(String url, Document document);
 
-	int addDocument(String url, String documentContents, boolean isHtml);
 
 	/**
 	 * How many keywords so far?
