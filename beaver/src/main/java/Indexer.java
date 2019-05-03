@@ -25,7 +25,8 @@ import spout.DocSpout;
 import java.util.*;
 
 public class Indexer {
-    public static String text = "After hearing about Joe's trip, Jane decided she might go to France one day.";
+    public static String text = "<html><head><title>Jane</title></head><body>" +
+            "After hearing about Joe's trip, Jane decided she might go to France one day.</body></html>";
 
     public static void main(String args[]) {
         TopologyBuilder builder = new TopologyBuilder();

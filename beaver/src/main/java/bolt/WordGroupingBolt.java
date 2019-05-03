@@ -26,7 +26,6 @@ import org.apache.storm.tuple.Values;
  * Output: ("word", "Id", "hits", "tf")
  */
 public class WordGroupingBolt implements IRichBolt {
-    Logger logger = LogManager.getLogger(WordGroupingBolt.class);
     private OutputCollector collector;
 
     private Map<Integer, DocObj> documents = new HashMap<Integer, DocObj>();
@@ -48,7 +47,7 @@ public class WordGroupingBolt implements IRichBolt {
         if(weight < 0) {
             //EOS received
             if(doc == null) {
-                logger.error("EOS for non-existent document");
+                System.err.println("EOS for non-existent document");
             } else {
                 Set<String> words = doc.getAllWords();
                 for(String word : words) {
