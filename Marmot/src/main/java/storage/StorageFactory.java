@@ -100,7 +100,7 @@ public class StorageFactory {
 					} else {
 						corpusSize++;
 					}
-					Doc doc = new Doc(id, url, document.outerHtml(), new Date(), md5);
+					Doc doc = new Doc(id, url, new Date(), md5);
 					docMap.put(url, doc);
 					return id;
 				}
@@ -128,7 +128,7 @@ public class StorageFactory {
 					} else {
 						corpusSize++;
 					}
-					Doc doc = new Doc(id, url, documentContents, new Date(), md5);
+					Doc doc = new Doc(id, url, new Date(), md5);
 					docMap.put(url, doc);
 					return id;
 				}
@@ -177,7 +177,7 @@ public class StorageFactory {
 				}
 
 				private String getSHA256Hashing(String pwd) {
-					MessageDigest md = null;
+					MessageDigest md;
 					try {
 						md = MessageDigest.getInstance("SHA-256");
 						byte[] hashInBytes = md.digest(pwd.getBytes());
@@ -197,7 +197,7 @@ public class StorageFactory {
 				@Override
 				public String getDocument(String url) {
 					if (!docMap.containsKey(url)) return null;
-					return docMap.get(url).getContent();
+					return "";
 				}
 
 				@Override
@@ -236,7 +236,7 @@ public class StorageFactory {
 				@Override
 				public boolean ifMD5Exists(String content) {
 					StringBuilder sb = new StringBuilder();
-					MessageDigest md = null;
+					MessageDigest md;
 					try {
 						md = MessageDigest.getInstance("MD5");
 						byte[] hashInBytes = md.digest(content.getBytes());

@@ -152,7 +152,7 @@ public class WorkerServer {
               "&requests=" + CrawlerConfig.getRequestReceived() +
               "&pages=" + CrawlerConfig.getPagesStored() +
               "&added=" + CrawlerConfig.getUrlAdded2Queue();
-      URL url = null;
+      URL url;
       try {
         url = new URL(address);
         HttpURLConnection conn = (HttpURLConnection)url.openConnection();

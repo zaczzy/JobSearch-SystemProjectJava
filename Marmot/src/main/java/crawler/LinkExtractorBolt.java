@@ -40,13 +40,15 @@ public class LinkExtractorBolt implements IRichBolt {
 	@Override
 	public void execute(Tuple input) {
 //		log.debug("Start extracting links for " + input.getStringByField("url"));
-		Document doc = Jsoup.parse(input.getStringByField("content"));
-		Elements links = doc.select("a[href]");
-		addNextPage(links);
-		CrawlerConfig.decreamentBuf();
-		if (CrawlerConfig.bufEmpty() && QueueFactory.getQueueInstance().isEmpty()) {
-			CrawlerConfig.setWhetherEnd(true);
+		if (input.getStringByField("type").equals("html")) {
+			Document doc = Jsoup.parse(input.getStringByField("content"));
+			Elements links = doc.select("a[href]");
+			addNextPage(links);
+			if (CrawlerConfig.bufEmpty() && QueueFactory.getQueueInstance().isEmpty()) {
+				CrawlerConfig.setWhetherEnd(true);
+			}
 		}
+		CrawlerConfig.decreamentBuf();
 	}
 
 	/**

@@ -73,7 +73,7 @@ public class CrawlerQueueSpout implements IRichSpout {
 			RobotsTxtInfo robotsTxtInfo = nextTask.getRobotsTxtInfo();
 			if (robotsTxtInfo != null && (robotsTxtInfo.getCrawlDelay("cis455crawler") != -1 || robotsTxtInfo.getCrawlDelay("*") != -1)) {
 				//If have to wait
-				int waitTime = robotsTxtInfo.getCrawlDelay("*");
+				double waitTime = robotsTxtInfo.getCrawlDelay("*");
 				waitTime = robotsTxtInfo.getCrawlDelay("cis455crawler") == -1 ? waitTime : robotsTxtInfo.getCrawlDelay("cis455crawler");
 				if (new Date().getTime() - (waitTime * 1000) < nextTask.getAddTime().getTime()) {
 					QueueFactory.getQueueInstance().add(nextTask);

@@ -8,24 +8,18 @@ public class Doc implements Serializable {
 	int id;
 
 	String url;
-	String content;
 	Date crawledTime;
 	String md5Hash;
 
-	public Doc(int id, String url, String content, Date crawledTime, String md5Hash) {
+	public Doc(int id, String url, Date crawledTime, String md5Hash) {
 		this.id = id;
 		this.url = url;
-		this.content = content;
 		this.crawledTime = crawledTime;
 		this.md5Hash = md5Hash;
 	}
 
 	public int getId() {
 		return this.id;
-	}
-
-	public String getContent() {
-		return content;
 	}
 
 	public Date getCrawledTime() {

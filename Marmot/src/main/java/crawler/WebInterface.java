@@ -48,8 +48,6 @@ public class WebInterface {
 			response.redirect("/login", 301);
 			return "";
 		});
-
-		get("/lookup", new LookupHandler(database));
 		awaitInitialization();
 	}
 }

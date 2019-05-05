@@ -70,6 +70,7 @@ public class RobotsHelper {
 			}
 			if (urlInfo.isSecure()) {
 				((HttpsURLConnection)connection).setRequestMethod("HEAD");
+				connection.setConnectTimeout(5000);
 				if (((HttpsURLConnection) connection).getResponseCode() != 200) {
 					if (((HttpsURLConnection) connection).getResponseCode() == 304) {
 //						log.info(OriURL + ": Not Modified");
@@ -103,7 +104,7 @@ public class RobotsHelper {
 //				if (size > CrawlerConfig.getSize()) return false;
 //				return (type.contains("text/html") || type.contains("xml"));
 			}
-		} catch (IOException | ClassCastException e) {
+		} catch (IOException | ClassCastException | IllegalArgumentException e) {
 			return false;
 		}
 	}
@@ -123,7 +124,7 @@ public class RobotsHelper {
 				} else if (line.startsWith("Disallow: ")) {
 					if (line.contains("/")) robotsTxtInfo.addDisallowedLink(userAgent, line.substring(line.indexOf("/")));
 				} else if (line.startsWith("Crawl-delay: ")) {
-					robotsTxtInfo.addCrawlDelay(userAgent, Integer.valueOf(line.substring(line.indexOf(" ") + 1)));
+					robotsTxtInfo.addCrawlDelay(userAgent, Double.valueOf(line.substring(line.indexOf(" ") + 1)));
 				} else if (line.startsWith("Sitemap: ")) {
 					robotsTxtInfo.addSitemapLink(line.substring(line.indexOf(" ") + 1));
 				}

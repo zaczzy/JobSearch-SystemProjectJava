@@ -7,7 +7,6 @@ import model.CrawlerConfig;
 import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
 import org.apache.storm.topology.TopologyBuilder;
-import org.apache.storm.tuple.Fields;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,6 +22,7 @@ public class MasterServer {
 
 	private static final String CRAWLER_QUEUE_SPOUT = "CRAWLER_QUEUE_SPOUT";
 	private static final String DOC_FETCHER_BOLT = "DOC_FETCHER_BOLT";
+	private static final String DOC_UPLOAD_BOLT = "DOC_UPLOAD_BOLT";
 	private static final String LINK_EXTRACTOR_BOLT = "LINK_EXTRACTOR_BOLT";
 	private static final String LINK_FILTER_BOLT = "LINK_FILTER_BOLT";
 
@@ -91,16 +91,19 @@ public class MasterServer {
 
 		CrawlerQueueSpout spout = new CrawlerQueueSpout();
 		DocFetcherBolt docFetcherBolt = new DocFetcherBolt();
+		DocUploadBolt docUploadBolt = new DocUploadBolt();
 		LinkExtractorBolt linkExtractorBolt = new LinkExtractorBolt();
 		LinkFilterBolt linkFilterBolt = new LinkFilterBolt();
 
 		TopologyBuilder builder = new TopologyBuilder();
 
-		builder.setSpout("CRAWLER_QUEUE_SPOUT", spout, 5);
+		builder.setSpout("CRAWLER_QUEUE_SPOUT", spout, 10);
 
 		builder.setBolt(DOC_FETCHER_BOLT, docFetcherBolt, 10).shuffleGrouping(CRAWLER_QUEUE_SPOUT);
 
-		builder.setBolt(LINK_EXTRACTOR_BOLT, linkExtractorBolt, 5).fieldsGrouping(DOC_FETCHER_BOLT, new Fields("url"));
+		builder.setBolt(DOC_UPLOAD_BOLT, docUploadBolt, 20).shuffleGrouping(DOC_FETCHER_BOLT);
+
+		builder.setBolt(LINK_EXTRACTOR_BOLT, linkExtractorBolt, 10).shuffleGrouping(DOC_FETCHER_BOLT);
 
 		builder.setBolt(LINK_FILTER_BOLT, linkFilterBolt, 20).shuffleGrouping(LINK_EXTRACTOR_BOLT);
 
@@ -115,6 +118,17 @@ public class MasterServer {
 		if (RobotsHelper.isOKtoCrawl(info, getStartURL(), task) && RobotsHelper.isOKtoParse(info, robotsTxtInfo)) {
 				QueueFactory.getQueueInstance().add(task);
 		}
+
+		info = new URLInfo("http://www.reddit.com");
+		robotsLocation = info.isSecure() ? "https://" : "http://";
+		robotsLocation += info.getHostName() + "/robots.txt";
+		robotsTxtInfo = RobotsHelper.parseRobotsTxt(robotsLocation);
+		task = new CrawlerTask(getStartURL(), robotsTxtInfo);
+
+		if (RobotsHelper.isOKtoCrawl(info, getStartURL(), task) && RobotsHelper.isOKtoParse(info, robotsTxtInfo)) {
+			QueueFactory.getQueueInstance().add(task);
+		}
+
 
 		cluster.submitTopology("test", config,
 						builder.createTopology());

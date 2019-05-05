@@ -23,6 +23,24 @@
                 <version>1.6.0</version>
                 <executions>
                     <execution>
+                        <id>s3test</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>aws.s3.S3Test</mainClass>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>dynamotest</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>aws.dynamoDB.DynamoTest</mainClass>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>master</id>
                         <goals>
                             <goal>java</goal>
@@ -33,7 +51,7 @@
                                 <argument>https://www.yahoo.com</argument>
                                 <argument>dbs0</argument>
                                 <argument>1</argument>
-                                <argument>3000</argument>
+                                <argument>12000</argument>
                                 <argument>0</argument>
                             </arguments>
                         </configuration>
@@ -81,11 +99,6 @@
             <version>2.9.1</version>
         </dependency>
         <dependency>
-            <groupId>com.getguru.interview</groupId>
-            <artifactId>interview-assignment</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
             <version>2.8.2</version>
@@ -116,6 +129,17 @@
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-core</artifactId>
             <version>1.2.2</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.5.32</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/software.amazon.awssdk/dynamodb -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>dynamodb</artifactId>
+            <version>2.5.37</version>
         </dependency>
     </dependencies>
 
