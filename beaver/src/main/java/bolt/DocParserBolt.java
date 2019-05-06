@@ -76,25 +76,27 @@ public class DocParserBolt implements IRichBolt {
 
         int pos = 0;
         //Parse title
-        Analyzer analyzer_title = new StandardAnalyzer();
-        TokenStream tokenStream = analyzer_title.tokenStream("content", title);
-        CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
-        try {
-            tokenStream.reset();
-            while (tokenStream.incrementToken()) {
-                collector.emit(new Values(id, attr.toString(), pos, title_w));
-                pos++;
-            }
-        } catch (IOException e) {
+        if(title != null && !title.equals("")) {
+            Analyzer analyzer_title = new StandardAnalyzer();
+            TokenStream tokenStream = analyzer_title.tokenStream("content", title);
+            CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
+            try {
+                tokenStream.reset();
+                while (tokenStream.incrementToken()) {
+                    collector.emit(new Values(id, attr.toString(), pos, title_w));
+                    pos++;
+                }
+            } catch (IOException e) {
 
+            }
         }
 
         //Parse meta data
         for(Element ele : meta) {
-            String text = ele.text();
+            String text = ele.attr("content");
             Analyzer analyzer_meta = new StandardAnalyzer();
-            tokenStream = analyzer_meta.tokenStream("content", text);
-            attr = tokenStream.addAttribute(CharTermAttribute.class);
+            TokenStream tokenStream = analyzer_meta.tokenStream("content", text);
+            CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
             try {
                 tokenStream.reset();
                 while (tokenStream.incrementToken()) {
@@ -109,13 +111,12 @@ public class DocParserBolt implements IRichBolt {
         for(Element ele : headerOne) {
             String text = ele.text();
             Analyzer analyzer_h1 = new StandardAnalyzer();
-            tokenStream = analyzer_h1.tokenStream("content", text);
-            attr = tokenStream.addAttribute(CharTermAttribute.class);
+            TokenStream tokenStream = analyzer_h1.tokenStream("content", text);
+            CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
             try {
                 tokenStream.reset();
                 while (tokenStream.incrementToken()) {
-                    collector.emit(new Values(id, attr.toString(), pos, headerOne_w));
-                    pos++;
+                    collector.emit(new Values(id, attr.toString(), -1, headerOne_w));
                 }
             } catch (IOException e) {
 
@@ -125,32 +126,35 @@ public class DocParserBolt implements IRichBolt {
         for(Element ele : headerTwo) {
             String text = ele.text();
             Analyzer analyzer_h2 = new StandardAnalyzer();
-            tokenStream = analyzer_h2.tokenStream("content", text);
-            attr = tokenStream.addAttribute(CharTermAttribute.class);
+            TokenStream tokenStream = analyzer_h2.tokenStream("content", text);
+            CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
             try {
                 tokenStream.reset();
                 while (tokenStream.incrementToken()) {
-                    collector.emit(new Values(id, attr.toString(), pos, headerTwo_w));
-                    pos++;
+                    collector.emit(new Values(id, attr.toString(), -1, headerTwo_w));
                 }
             } catch (IOException e) {
 
             }
         }
         //Parse body
-        String body = doc.body().text();
-        Analyzer analyzer_body = new StandardAnalyzer();
-        tokenStream = analyzer_body.tokenStream("content", body);
-        attr = tokenStream.addAttribute(CharTermAttribute.class);
-        try {
-            tokenStream.reset();
-            while (tokenStream.incrementToken()) {
-                collector.emit(new Values(id, attr.toString(), pos, 1));
-                pos++;
-            }
-        } catch (IOException e) {
+        Element ele = doc.body();
+        if(ele != null) {
+            String body = ele.text();
+            Analyzer analyzer_body = new StandardAnalyzer();
+            TokenStream tokenStream = analyzer_body.tokenStream("content", body);
+            CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
+            try {
+                tokenStream.reset();
+                while (tokenStream.incrementToken()) {
+                    collector.emit(new Values(id, attr.toString(), pos, 1));
+                    pos++;
+                }
+            } catch (IOException e) {
 
+            }
         }
+
         //emit EOS
         collector.emit(new Values(id, "EOS", pos, -1));
     }

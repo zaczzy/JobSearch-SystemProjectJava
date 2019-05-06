@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Random;
 
 import aws.s3.S3Service;
+import model.Sentinel;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichSpout;
@@ -23,6 +24,8 @@ public class DocSpout implements IRichSpout {
     private SpoutOutputCollector collector;
     int index = 0;
     List<String> fileNames;
+    private Sentinel sentinel;
+    private boolean finished = false;
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
@@ -32,7 +35,9 @@ public class DocSpout implements IRichSpout {
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         this.collector = collector;
-        fileNames = S3Service.getInstance().listAllFiles("documents/1/");
+        this.sentinel = Sentinel.getInstance();
+        this.sentinel.inc();
+        fileNames = S3Service.getInstance().listAllFiles("documents/2/");
     }
 
     @Override
@@ -40,6 +45,9 @@ public class DocSpout implements IRichSpout {
         if (index < fileNames.size()) {
             collector.emit(new Values(fileNames.get(index)));
             index++;
+        } else if(!finished) {
+            sentinel.dec();
+            finished = true;
         }
     }
 

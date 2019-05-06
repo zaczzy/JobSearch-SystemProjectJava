@@ -3,6 +3,7 @@ import bolt.DocDownloaderBolt;
 import bolt.DocParserBolt;
 import bolt.SenderBolt;
 import bolt.WordGroupingBolt;
+import model.Sentinel;
 import spout.DocSpout;
 import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
@@ -25,6 +26,8 @@ public class Indexer {
         builder.setBolt("sender", new SenderBolt(), 10).shuffleGrouping("grouping");
 
         Config conf = new Config();
+        /* Turn off logging to console */
+        conf.setDebug(false);
         /* set up parallelism */
         conf.setNumWorkers(2);
 
@@ -36,9 +39,13 @@ public class Indexer {
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology(topologyName, conf, builder.createTopology());
 
+        Sentinel sentinel = Sentinel.getInstance();
+
         /* Shutdown*/
         try {
-            Thread.sleep(25000);
+            do {
+                Thread.sleep(5000);
+            } while(sentinel.getCount() != 0);
         } catch (Exception e) {
             e.printStackTrace();
         }
