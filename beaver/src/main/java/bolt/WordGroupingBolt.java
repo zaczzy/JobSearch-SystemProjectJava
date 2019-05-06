@@ -1,6 +1,7 @@
 package bolt;
 
 import model.DocObj;
+import model.Sentinel;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichBolt;
@@ -27,8 +28,9 @@ import org.apache.storm.tuple.Values;
  */
 public class WordGroupingBolt implements IRichBolt {
     private OutputCollector collector;
+    private Sentinel sentinel;
 
-    private Map<Integer, DocObj> documents = new HashMap<Integer, DocObj>();
+    private Map<String, DocObj> documents = new HashMap<String, DocObj>();
 
     public WordGroupingBolt() {
 
@@ -37,12 +39,15 @@ public class WordGroupingBolt implements IRichBolt {
     @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
+        this.sentinel = Sentinel.getInstance();
     }
 
     @Override
     public void execute(Tuple input) {
+        sentinel.setWorking(true);
         int weight = input.getIntegerByField("weight");
-        int id = input.getIntegerByField("Id");
+        String id = input.getStringByField("Id");
+        sentinel.setBuffer(false);
         DocObj doc = documents.get(id);
         if(weight < 0) {
             //EOS received
@@ -53,6 +58,7 @@ public class WordGroupingBolt implements IRichBolt {
                 for(String word : words) {
                     List<Integer> list = doc.getPositions(word);
                     int tf = doc.getFreq(word);
+                    sentinel.setBuffer(true);
                     collector.emit(new Values(word, id, list, tf));
                 }
             }
@@ -68,6 +74,7 @@ public class WordGroupingBolt implements IRichBolt {
             doc.addFreq(word, weight);
             documents.put(id, doc);
         }
+        sentinel.setWorking(false);
     }
 
     @Override

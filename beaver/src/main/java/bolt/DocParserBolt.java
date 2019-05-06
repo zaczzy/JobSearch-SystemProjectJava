@@ -1,6 +1,7 @@
 package bolt;
 
 import model.DocObj;
+import model.Sentinel;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.storm.Config;
@@ -46,6 +47,7 @@ import java.util.UUID;
 
 public class DocParserBolt implements IRichBolt {
     private OutputCollector collector;
+    private Sentinel sentinel;
     String executorId = UUID.randomUUID().toString();
 
     private static int title_w = 5;
@@ -61,12 +63,15 @@ public class DocParserBolt implements IRichBolt {
     @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
+        this.sentinel = Sentinel.getInstance();
     }
 
     @Override
     public void execute(Tuple input) {
+        sentinel.setWorking(true);
         String content = input.getStringByField("doc");
-        int id = input.getIntegerByField("Id");
+        String id = input.getStringByField("Id");
+        sentinel.setBuffer(false);
         Document doc = Jsoup.parse(content);
 
         String title = doc.title();
@@ -83,6 +88,7 @@ public class DocParserBolt implements IRichBolt {
             try {
                 tokenStream.reset();
                 while (tokenStream.incrementToken()) {
+                    sentinel.setBuffer(true);
                     collector.emit(new Values(id, attr.toString(), pos, title_w));
                     pos++;
                 }
@@ -100,6 +106,7 @@ public class DocParserBolt implements IRichBolt {
             try {
                 tokenStream.reset();
                 while (tokenStream.incrementToken()) {
+                    sentinel.setBuffer(true);
                     collector.emit(new Values(id, attr.toString(), pos, meta_w));
                     pos++;
                 }
@@ -116,6 +123,7 @@ public class DocParserBolt implements IRichBolt {
             try {
                 tokenStream.reset();
                 while (tokenStream.incrementToken()) {
+                    sentinel.setBuffer(true);
                     collector.emit(new Values(id, attr.toString(), -1, headerOne_w));
                 }
             } catch (IOException e) {
@@ -131,6 +139,7 @@ public class DocParserBolt implements IRichBolt {
             try {
                 tokenStream.reset();
                 while (tokenStream.incrementToken()) {
+                    sentinel.setBuffer(true);
                     collector.emit(new Values(id, attr.toString(), -1, headerTwo_w));
                 }
             } catch (IOException e) {
@@ -147,6 +156,7 @@ public class DocParserBolt implements IRichBolt {
             try {
                 tokenStream.reset();
                 while (tokenStream.incrementToken()) {
+                    sentinel.setBuffer(true);
                     collector.emit(new Values(id, attr.toString(), pos, 1));
                     pos++;
                 }
@@ -156,7 +166,9 @@ public class DocParserBolt implements IRichBolt {
         }
 
         //emit EOS
+        sentinel.setBuffer(true);
         collector.emit(new Values(id, "EOS", pos, -1));
+        sentinel.setWorking(false);
     }
 
     @Override

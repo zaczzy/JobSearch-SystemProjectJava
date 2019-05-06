@@ -6,27 +6,37 @@ public class Sentinel {
     private static Sentinel singleton = null;
 
     private AtomicInteger count;
+    private AtomicInteger inBuffer;
 
     private Sentinel() {
-        count = new AtomicInteger(0);
+        count = new AtomicInteger(1);
+        inBuffer = new AtomicInteger(0);
     }
 
-    public static Sentinel getInstance() {
+    public static synchronized Sentinel getInstance() {
         if(singleton == null) {
             singleton = new Sentinel();
         }
         return singleton;
     }
 
-    public void inc() {
-        count.incrementAndGet();
+    public void setWorking(boolean working) {
+        if(working) {
+            count.incrementAndGet();
+        } else {
+            count.decrementAndGet();
+        }
     }
 
-    public void dec() {
-        count.decrementAndGet();
+    public void setBuffer(boolean add) {
+        if(add) {
+            inBuffer.incrementAndGet();
+        } else {
+            inBuffer.decrementAndGet();
+        }
     }
 
-    public int getCount() {
-        return count.intValue();
+    public boolean finished() {
+        return (count.intValue() == 0 && inBuffer.intValue() == 0);
     }
 }

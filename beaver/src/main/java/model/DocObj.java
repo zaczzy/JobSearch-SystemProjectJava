@@ -7,12 +7,12 @@ import java.util.Map;
 import java.util.Set;
 
 public class DocObj {
-    int id;
+    String id;
 
     Map<String, List<Integer>> positions = new HashMap<>();
     Map<String, Integer> freqs = new HashMap<>();
 
-    public DocObj(int id) {
+    public DocObj(String id) {
         this.id = id;
     }
 

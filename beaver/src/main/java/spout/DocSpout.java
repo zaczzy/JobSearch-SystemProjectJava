@@ -14,6 +14,7 @@ import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichSpout;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.Utils;
 
 /**
  * Receive: fetch from S3
@@ -36,17 +37,19 @@ public class DocSpout implements IRichSpout {
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         this.collector = collector;
         this.sentinel = Sentinel.getInstance();
-        this.sentinel.inc();
-        fileNames = S3Service.getInstance().listAllFiles("documents/1/");
+        fileNames = S3Service.getInstance().listAllFiles("test2/");
+        System.out.println("file names loaded!");
     }
 
     @Override
     public void nextTuple() {
+        Utils.sleep(200);
         if (index < fileNames.size()) {
-            collector.emit(new Values(fileNames.get(index)));
+            sentinel.setBuffer(true);
+            collector.emit(new Values(fileNames.get(index)), index);
             index++;
         } else if(!finished) {
-            sentinel.dec();
+            sentinel.setWorking(false);
             finished = true;
         }
     }
