@@ -31,7 +31,7 @@ public class SenderBolt implements IRichBolt {
         Integer tf = (Integer) tuple.getValueByField("tf");
         System.out.println(word + ":" + docId + ":" + list + ":" + tf);
         /* Send to DB*/
-        //DBManager.getInstance().addRecord(word, docId, list, tf);
+        DBManager.getInstance().addRecord(word, docId, list, tf);
     }
 
     @Override

@@ -37,7 +37,7 @@ public class DocSpout implements IRichSpout {
         this.collector = collector;
         this.sentinel = Sentinel.getInstance();
         this.sentinel.inc();
-        fileNames = S3Service.getInstance().listAllFiles("documents/2/");
+        fileNames = S3Service.getInstance().listAllFiles("documents/1/");
     }
 
     @Override
