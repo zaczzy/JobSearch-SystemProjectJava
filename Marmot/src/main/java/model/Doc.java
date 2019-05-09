@@ -5,20 +5,20 @@ import java.util.Date;
 
 public class Doc implements Serializable {
 
-	int id;
+	String id;
 
 	String url;
 	Date crawledTime;
 	String md5Hash;
 
-	public Doc(int id, String url, Date crawledTime, String md5Hash) {
+	public Doc(String id, String url, Date crawledTime, String md5Hash) {
 		this.id = id;
 		this.url = url;
 		this.crawledTime = crawledTime;
 		this.md5Hash = md5Hash;
 	}
 
-	public int getId() {
+	public String getId() {
 		return this.id;
 	}
 

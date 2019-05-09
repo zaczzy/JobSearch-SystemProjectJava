@@ -5,19 +5,15 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.*;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 
 public class DynamoDBService {
   private static DynamoDBService instance;
-  GetItemRequest getRequest;
-  protected DynamoDbClient dbClient;
+  private DynamoDbClient dbClient;
 
 
 
@@ -59,16 +55,23 @@ public class DynamoDBService {
             .key(key_to_get)
             .tableName(Credentials.TABLE_NAME)
             .build();
+    return dbClient.getItem(request).item();
+  }
 
-    Map<String,AttributeValue> returned_item =
-            dbClient.getItem(request).item();
-    if (returned_item != null) {
-      Set<String> keys = returned_item.keySet();
-      for (String key : keys) {
-        System.out.format("%s: %s\n",
-                key, returned_item.get(key).s());
-      }
+  public void update(String id, String[][] fields) {
+    HashMap<String,AttributeValue> item_key =
+            new HashMap<>();
+    item_key.put("ID", AttributeValue.builder()
+            .s(id).build());
+
+    HashMap<String, AttributeValueUpdate> item_values = new HashMap<>();
+    for (String[] field : fields) {
+      item_values.put(field[0], AttributeValueUpdate.builder()
+              .value(AttributeValue.builder().s(field[1]).build())
+              .action(AttributeAction.PUT)
+              .build());
     }
-    return returned_item;
+    UpdateItemRequest updateRequest = UpdateItemRequest.builder().tableName(Credentials.TABLE_NAME).key(item_key).attributeUpdates(item_values).build();
+    dbClient.updateItem(updateRequest);
   }
 }

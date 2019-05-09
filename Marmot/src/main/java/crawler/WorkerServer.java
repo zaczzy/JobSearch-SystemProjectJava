@@ -4,11 +4,9 @@ import crawler.handlers.AddURLHandler;
 import crawler.info.RobotsTxtInfo;
 import crawler.info.URLInfo;
 import model.CrawlerConfig;
-import org.apache.logging.log4j.Level;
 import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
 import org.apache.storm.topology.TopologyBuilder;
-import org.apache.storm.tuple.Fields;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -25,27 +23,6 @@ import static spark.Spark.port;
 
 public class WorkerServer {
 
-  private static final String CRAWLER_QUEUE_SPOUT = "CRAWLER_QUEUE_SPOUT";
-  private static final String DOC_FETCHER_BOLT = "DOC_FETCHER_BOLT";
-  private static final String LINK_EXTRACTOR_BOLT = "LINK_EXTRACTOR_BOLT";
-  private static final String LINK_FILTER_BOLT = "LINK_FILTER_BOLT";
-
-  public static class WorkerStatus {
-    String ip;
-    String port;
-    String requestsReceived;
-    String pagesStored;
-    String urlAdded2Queue;
-
-    public WorkerStatus(String ip, String port, String requestsReceived, String pagesStored, String urlAdded2Queue) {
-      this.ip = ip;
-      this.port = port;
-      this.requestsReceived = requestsReceived;
-      this.pagesStored = pagesStored;
-      this.urlAdded2Queue = urlAdded2Queue;
-    }
-  }
-
   static String masterAddress = "localhost:8000";
   static String myPort = "";
 
@@ -55,7 +32,7 @@ public class WorkerServer {
    */
 
   public static void main(String[] args) {
-    org.apache.logging.log4j.core.config.Configurator.setLevel("crawler", Level.INFO);
+//    org.apache.logging.log4j.core.config.Configurator.setLevel("crawler", Level.INFO);
 
     if (args.length < 3 || args.length > 6) {
       System.out.println("Usage: MasterServer {start URL} {database environment path} {max doc size in MB} {number of files to index}");
@@ -68,7 +45,7 @@ public class WorkerServer {
     int count = args.length == 4 ? Integer.valueOf(args[3]) : 100;
     int selfIndex = Integer.valueOf(args[4]);
 
-    CrawlerConfig.setMyIndex(8000+selfIndex);
+    CrawlerConfig.setMyIndex(selfIndex);
     myPort = String.valueOf(8000 + selfIndex);
     port(8000 + selfIndex);
 
@@ -77,13 +54,14 @@ public class WorkerServer {
 
     get("/shutdown", (request, response) -> {
       CrawlerConfig.setWhetherEnd(true);
+      System.exit(0);
       return "shutdown worker";
     });
 
     TimerTask reportTask = new periodicallyReport();
     Timer timer = new Timer();
     timer.scheduleAtFixedRate(reportTask,500,10000);
-
+    registerRcvNotice();
 
     Config config = new Config();
     setStartURL(startUrl);
@@ -99,20 +77,17 @@ public class WorkerServer {
       }
     }
 
-    CrawlerQueueSpout spout = new CrawlerQueueSpout();
-    DocFetcherBolt docFetcherBolt = new DocFetcherBolt();
-    LinkExtractorBolt linkExtractorBolt = new LinkExtractorBolt();
-    LinkFilterBolt linkFilterBolt = new LinkFilterBolt();
-
     TopologyBuilder builder = new TopologyBuilder();
 
-    builder.setSpout(CRAWLER_QUEUE_SPOUT, spout, 5);
+    builder.setSpout("CRAWLER_QUEUE_SPOUT", new CrawlerQueueSpout(), 10);
 
-    builder.setBolt(DOC_FETCHER_BOLT, docFetcherBolt, 5).shuffleGrouping(CRAWLER_QUEUE_SPOUT);
+//    builder.setBolt("DOC_FETCHER_BOLT", new DocFetcherBolt(), 10).shuffleGrouping("CRAWLER_QUEUE_SPOUT");
 
-    builder.setBolt(LINK_EXTRACTOR_BOLT, linkExtractorBolt, 5).fieldsGrouping(DOC_FETCHER_BOLT, new Fields("url"));
+//		builder.setBolt("DOC_UPLOAD_BOLT",  new DocUploadBolt(), 20).shuffleGrouping("DOC_FETCHER_BOLT");
 
-    builder.setBolt(LINK_FILTER_BOLT, linkFilterBolt, 5).shuffleGrouping(LINK_EXTRACTOR_BOLT);
+//    builder.setBolt("LINK_EXTRACTOR_BOLT", new LinkExtractorBolt(), 20).shuffleGrouping("DOC_FETCHER_BOLT");
+//
+//    builder.setBolt("LINK_FILTER_BOLT", new LinkFilterBolt(), 20).shuffleGrouping("LINK_EXTRACTOR_BOLT");
 
     LocalCluster cluster = new LocalCluster();
     URLInfo info = new URLInfo(getStartURL());
@@ -136,11 +111,22 @@ public class WorkerServer {
         e.printStackTrace();
       }
     }
+    while (true);
+//    cluster.killTopology("test");
+//    cluster.shutdown();
 
-    cluster.killTopology("test");
-    cluster.shutdown();
+//    System.exit(0);
+  }
 
-    System.exit(0);
+  public static void registerRcvNotice() {
+    get("/notice", (request, response) -> {
+      CrawlerConfig.setTotalWorker(Integer.valueOf(request.queryParams("total")));
+      CrawlerConfig.setMyIndex(Integer.valueOf(request.queryParams("you")));
+      for (int i = 0; i < CrawlerConfig.getTotalWorker(); i++) {
+        contactMap.put(i, request.queryParams("worker" + i));
+      }
+      return "receive notice";
+    });
   }
 
   private static class periodicallyReport extends TimerTask {

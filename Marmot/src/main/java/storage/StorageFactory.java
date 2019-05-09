@@ -1,5 +1,6 @@
 package storage;
 
+import aws.dynamoDB.DynamoDBService;
 import com.sleepycat.bind.EntryBinding;
 import com.sleepycat.bind.serial.SerialBinding;
 import com.sleepycat.bind.serial.StoredClassCatalog;
@@ -10,8 +11,6 @@ import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import model.CrawlerConfig;
 import model.Doc;
-import model.User;
-import org.jsoup.nodes.Document;
 
 import java.io.File;
 import java.security.MessageDigest;
@@ -26,34 +25,35 @@ public class StorageFactory {
 		if (database == null) {
 			database = new StorageInterface() {
 
-				private final String USER_CATALOG = User.class.toString();
 				private final String Document_CATALOG = Doc.class.toString();
-				private final String Channel_CATALOG = Doc.class.toString();
+
 				DatabaseConfig dbConfig = getDbConfig();
-				int userCnt = 0;
-				private int corpusSize = 0;
 				private int lexiconSize = 0;
 				private Environment env = new Environment(new File(directory), getEnvConfig());
 
-				Database userCatalogDB = env.openDatabase(null, USER_CATALOG,
+				Database md5CatalogDB = env.openDatabase(null, String.class.toString(),
 								dbConfig);
+
 				Database documentCatalogDB = env.openDatabase(null, Document_CATALOG,
 								dbConfig);
 
-				Database userDB = env.openDatabase(null, "user_store", dbConfig);
 				Database documentDB = env.openDatabase(null, "document_store", dbConfig);
+				Database md5DB = env.openDatabase(null, "md5_store", dbConfig);
 
-
-				private StoredClassCatalog userJavaCatalog = new StoredClassCatalog(userCatalogDB);
-				EntryBinding userKeyBinding = new SerialBinding(userJavaCatalog, String.class);
-				EntryBinding userDataBinding = new SerialBinding(userJavaCatalog, User.class);
 
 				private StoredClassCatalog documentJavaCatalog = new StoredClassCatalog(documentCatalogDB);
+				private StoredClassCatalog md5JavaCatalog = new StoredClassCatalog(md5CatalogDB);
+
+
 				EntryBinding docKeyBinding = new SerialBinding(documentJavaCatalog, String.class);
 				EntryBinding docDataBinding = new SerialBinding(documentJavaCatalog, Doc.class);
 
-				private Map<String, User> userMap = new StoredSortedMap(userDB, userKeyBinding, userDataBinding, true);
+
+				EntryBinding md5KeyBinding = new SerialBinding(md5JavaCatalog, String.class);
+				EntryBinding md5DataBinding = new SerialBinding(md5JavaCatalog, String.class);
+
 				private Map<String, Doc> docMap = new StoredSortedMap(documentDB, docKeyBinding, docDataBinding, true);
+				private Map<String, String> md5Map = new StoredSortedMap(md5DB, md5KeyBinding, md5DataBinding, true);
 
 				EnvironmentConfig getEnvConfig() {
 					EnvironmentConfig envConf = new EnvironmentConfig();
@@ -77,33 +77,6 @@ public class StorageFactory {
 					return docMap.size();
 				}
 
-				/**
-				 * Add a new document, getting its ID
-				 *
-				 * @param url
-				 * @param document
-				 */
-				@Override
-				public int addDocument(String url, Document document) {
-					StringBuilder sb = new StringBuilder();
-					try {
-						MessageDigest md = MessageDigest.getInstance("MD5");
-						byte[] hashInBytes = md.digest(document.outerHtml().getBytes());
-						for (byte b : hashInBytes) sb.append(String.format("%02x", b));
-					} catch (NoSuchAlgorithmException e) {
-						e.printStackTrace();
-					}
-					String md5 = sb.toString();
-					int id = corpusSize;
-					if (docMap.containsKey(url)) {
-						id = docMap.get(url).getId();
-					} else {
-						corpusSize++;
-					}
-					Doc doc = new Doc(id, url, new Date(), md5);
-					docMap.put(url, doc);
-					return id;
-				}
 
 				/**
 				 * Add a new document, getting its ID
@@ -112,8 +85,9 @@ public class StorageFactory {
 				 * @param documentContents
 				 */
 				@Override
-				public int addDocument(String url, String documentContents) {
+				public boolean addDocument(String url, String documentContents, String id) {
 					StringBuilder sb = new StringBuilder();
+					boolean needUpdate = true;
 					try {
 						MessageDigest md = MessageDigest.getInstance("MD5");
 						byte[] hashInBytes = md.digest(documentContents.getBytes());
@@ -122,15 +96,24 @@ public class StorageFactory {
 						e.printStackTrace();
 					}
 					String md5 = sb.toString();
-					int id = corpusSize;
 					if (docMap.containsKey(url)) {
-						id = docMap.get(url).getId();
-					} else {
-						corpusSize++;
+						//No need to update anything, keep the previous docID
+						if (md5.equals(docMap.get(url).getMd5Hash())) {
+							System.out.println(url + " is up to date");
+							needUpdate = false;
+							id = docMap.get(url).getId();
+						}
+						//Update the document in S3
+						String oldID = docMap.get(url).getId();
+						String[][] updateFields = new String[1][2];
+						updateFields[0][0] = "isNew";
+						updateFields[0][1] = "false";
+						DynamoDBService.getInstance().update(oldID, updateFields);
 					}
 					Doc doc = new Doc(id, url, new Date(), md5);
 					docMap.put(url, doc);
-					return id;
+					md5Map.put(md5, "");
+					return needUpdate;
 				}
 
 				/**
@@ -151,30 +134,6 @@ public class StorageFactory {
 					return 0;
 				}
 
-				/**
-				 * Adds a user and returns an ID
-				 *
-				 * @param username
-				 * @param password
-				 */
-				@Override
-				public int addUser(String username, String password, String firstName, String lastName) {
-					User user = new User(userCnt, username, getSHA256Hashing(password), firstName, lastName);
-					userMap.put(username, user);
-					userCnt++;
-					return userCnt;
-				}
-
-				/**
-				 * Tries to log in the user, or else throws a HaltException
-				 *
-				 * @param username
-				 * @param password
-				 */
-				@Override
-				public boolean getSessionForUser(String username, String password) {
-					return userMap.containsKey(username) && userMap.get(username).getPassword().equals(getSHA256Hashing(password));
-				}
 
 				private String getSHA256Hashing(String pwd) {
 					MessageDigest md;
@@ -212,25 +171,10 @@ public class StorageFactory {
 				 */
 				@Override
 				public void close() {
-					userDB.close();
 					documentDB.close();
-					userJavaCatalog.close();
 					documentJavaCatalog.close();
-					userCatalogDB.close();
 					documentCatalogDB.close();
 					env.close();
-				}
-
-				/*
-				 * Get the first and last name for a given user. Should be used when the user has already logged in.
-				 */
-				@Override
-				public String[] getFirstAndLastName(String username, String password) {
-					if (getSessionForUser(username, password)) {
-						User user = userMap.get(username);
-						return new String[]{user.getFirstName(), user.getLastName()};
-					}
-					return null;
 				}
 
 				@Override
@@ -241,11 +185,7 @@ public class StorageFactory {
 						md = MessageDigest.getInstance("MD5");
 						byte[] hashInBytes = md.digest(content.getBytes());
 						for (byte b : hashInBytes) sb.append(String.format("%02x", b));
-						Set<String> md5Set = new HashSet<>();
-						for (Doc doc : docMap.values()) {
-							md5Set.add(doc.getMd5Hash());
-						}
-						return md5Set.contains(sb.toString());
+						return md5Map.containsKey(sb.toString());
 					} catch (NoSuchAlgorithmException e) {
 						e.printStackTrace();
 						return false;
@@ -263,6 +203,7 @@ public class StorageFactory {
 				public boolean checkIfFull() {
 					return docMap.size() >= CrawlerConfig.getCount();
 				}
+
 			};
 		}
 		return database;

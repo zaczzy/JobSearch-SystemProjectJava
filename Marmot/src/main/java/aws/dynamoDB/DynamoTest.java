@@ -13,6 +13,12 @@ public class DynamoTest {
       fields[1][1] = "yesterday";
       DynamoDBService.getInstance().put("testID", fields);
       DynamoDBService.getInstance().get("testID");
+      fields = new String[1][2];
+      fields[0][0] = "url";
+      fields[0][1] = "https://www.yahoo.com";
+      DynamoDBService.getInstance().update("testID", fields);
+      DynamoDBService.getInstance().get("testID");
+
     }
 
 }

@@ -13,6 +13,9 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 
@@ -43,7 +46,7 @@ public class LinkExtractorBolt implements IRichBolt {
 		if (input.getStringByField("type").equals("html")) {
 			Document doc = Jsoup.parse(input.getStringByField("content"));
 			Elements links = doc.select("a[href]");
-			addNextPage(links);
+			addNextPage(input.getStringByField("url"), links);
 			if (CrawlerConfig.bufEmpty() && QueueFactory.getQueueInstance().isEmpty()) {
 				CrawlerConfig.setWhetherEnd(true);
 			}
@@ -92,15 +95,27 @@ public class LinkExtractorBolt implements IRichBolt {
 		return null;
 	}
 
-	private void addNextPage(Elements links) {
+	private void addNextPage(String url, Elements links) {
 		for (Element e : links) {
 			CrawlerConfig.increamentBuf();
 			String nextUrl = e.attr("abs:href");
 			if (!FilterSharedFactory.outerLinkSet.contains(nextUrl)) {
 				collector.emit(new Values(nextUrl));
 				FilterSharedFactory.outerLinkSet.add(nextUrl);
+				writeLocalLinksFile(url, nextUrl);
 //				log.debug(getExecutorId() + " emitting " + nextUrl);
 			}
+		}
+	}
+
+	private void writeLocalLinksFile(String from, String to) {
+		try {
+			File file = new File(CrawlerConfig.getLinksFileLocation());
+			FileWriter fr = new FileWriter(file, true);
+			fr.write(from + "\t" + to + "\n");
+			fr.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 }

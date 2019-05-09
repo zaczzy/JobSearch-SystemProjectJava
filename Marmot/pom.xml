@@ -49,9 +49,9 @@
                             <mainClass>crawler.MasterServer</mainClass>
                             <arguments>
                                 <argument>https://www.yahoo.com</argument>
-                                <argument>dbs0</argument>
+                                <argument>dbs1</argument>
                                 <argument>1</argument>
-                                <argument>12000</argument>
+                                <argument>1000000</argument>
                                 <argument>0</argument>
                             </arguments>
                         </configuration>
@@ -67,7 +67,7 @@
                                 <argument>https://www.reddit.com</argument>
                                 <argument>dbs1</argument>
                                 <argument>1</argument>
-                                <argument>3000</argument>
+                                <argument>1000000</argument>
                                 <argument>1</argument>
                             </arguments>
                         </configuration>
@@ -81,9 +81,9 @@
                             <mainClass>crawler.WorkerServer</mainClass>
                             <arguments>
                                 <argument>https://www.twitter.com</argument>
-                                <argument>dbs2</argument>
+                                <argument>dbs1</argument>
                                 <argument>1</argument>
-                                <argument>3000</argument>
+                                <argument>1000000</argument>
                                 <argument>2</argument>
                             </arguments>
                         </configuration>

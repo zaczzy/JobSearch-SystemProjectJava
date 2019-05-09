@@ -129,7 +129,7 @@ public class RobotsHelper {
 					robotsTxtInfo.addSitemapLink(line.substring(line.indexOf(" ") + 1));
 				}
 			}
-		} catch (IOException e) {
+		} catch (IOException | NumberFormatException e) {
 //			e.printStackTrace();
 			return null;
 		}

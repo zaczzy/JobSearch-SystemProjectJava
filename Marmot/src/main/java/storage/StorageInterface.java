@@ -1,7 +1,6 @@
 package storage;
 
 import model.Doc;
-import org.jsoup.nodes.Document;
 
 import java.util.Date;
 import java.util.List;
@@ -16,10 +15,7 @@ public interface StorageInterface {
 	/**
 	 * Add a new document, getting its ID
 	 */
-	int addDocument(String url, String documentContents);
-
-	int addDocument(String url, Document document);
-
+	boolean addDocument(String url, String documentContents, String id);
 
 	/**
 	 * How many keywords so far?
@@ -32,16 +28,6 @@ public interface StorageInterface {
 	int addOrGetKeywordId(String keyword);
 
 	/**
-	 * Adds a user and returns an ID
-	 */
-	int addUser(String username, String password, String firstName, String lastName);
-
-	/**
-	 * Tries to log in the user, or else throws a HaltException
-	 */
-	boolean getSessionForUser(String username, String password);
-
-	/**
 	 * Retrieves a document's contents by URL
 	 */
 	String getDocument(String url);
@@ -50,12 +36,6 @@ public interface StorageInterface {
 	 * Shuts down / flushes / closes the storage system
 	 */
 	void close();
-
-	/*
-	 * Get the first and last name for a given user. Should be used when the user has already logged in.
-	 */
-	String[] getFirstAndLastName(String username, String password);
-
 	/*
 			Get the crawler time for document with url
 	 */

@@ -9,10 +9,11 @@ import org.apache.storm.LocalCluster;
 import org.apache.storm.topology.TopologyBuilder;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static model.CrawlerConfig.*;
 import static spark.Spark.get;
@@ -20,11 +21,6 @@ import static spark.Spark.port;
 
 public class MasterServer {
 
-	private static final String CRAWLER_QUEUE_SPOUT = "CRAWLER_QUEUE_SPOUT";
-	private static final String DOC_FETCHER_BOLT = "DOC_FETCHER_BOLT";
-	private static final String DOC_UPLOAD_BOLT = "DOC_UPLOAD_BOLT";
-	private static final String LINK_EXTRACTOR_BOLT = "LINK_EXTRACTOR_BOLT";
-	private static final String LINK_FILTER_BOLT = "LINK_FILTER_BOLT";
 
 	public static class WorkerStatus {
 		String ip;
@@ -42,7 +38,7 @@ public class MasterServer {
 		}
 	}
 
-	private static Map<String, WorkerStatus> workerMap = new HashMap<>();
+	private static Map<String, WorkerStatus> workerMap = new TreeMap<>();
 
 	/**
 	 * Main program:  init database, start crawler, wait
@@ -62,9 +58,13 @@ public class MasterServer {
 		String envPath = args[1];
 		int size = Integer.valueOf(args[2]);
 		int count = args.length >= 4 ? Integer.valueOf(args[3]) : 100;
-		int selfIndex = 0;
+		int selfIndex = Integer.valueOf(args[4]);
+		CrawlerConfig.setMyIndex(selfIndex);
 
-		port(8000);
+		port(8000 + selfIndex);
+		WorkerStatus myStatus = new WorkerStatus("127.0.0.1", String.valueOf(8000+selfIndex), String.valueOf(CrawlerConfig.getRequestReceived()),
+						String.valueOf(CrawlerConfig.getPagesStored()), String.valueOf(CrawlerConfig.getUrlAdded2Queue()));
+		workerMap.put("127.0.0.1:" + (8000 + selfIndex), myStatus);
 
 		registerWorkerStatusPage();
 		registerStatusPage();
@@ -72,6 +72,7 @@ public class MasterServer {
 
 		get("/shutdown", (request, response) -> {
 			CrawlerConfig.setWhetherEnd(true);
+			System.exit(0);
 			return "shutdown worker";
 		});
 
@@ -81,6 +82,10 @@ public class MasterServer {
 		setCount(count);
 		setSize(size);
 
+		TimerTask reportTask = new periodicallyNotice();
+		Timer timer = new Timer();
+		timer.scheduleAtFixedRate(reportTask,2500,10000);
+
 		if (!Files.exists(Paths.get(getDatabaseDir()))) {
 			try {
 				Files.createDirectory(Paths.get(getDatabaseDir()));
@@ -89,23 +94,17 @@ public class MasterServer {
 			}
 		}
 
-		CrawlerQueueSpout spout = new CrawlerQueueSpout();
-		DocFetcherBolt docFetcherBolt = new DocFetcherBolt();
-		DocUploadBolt docUploadBolt = new DocUploadBolt();
-		LinkExtractorBolt linkExtractorBolt = new LinkExtractorBolt();
-		LinkFilterBolt linkFilterBolt = new LinkFilterBolt();
-
 		TopologyBuilder builder = new TopologyBuilder();
 
-		builder.setSpout("CRAWLER_QUEUE_SPOUT", spout, 10);
+		builder.setSpout("CRAWLER_QUEUE_SPOUT", new CrawlerQueueSpout(), 10);
 
-		builder.setBolt(DOC_FETCHER_BOLT, docFetcherBolt, 10).shuffleGrouping(CRAWLER_QUEUE_SPOUT);
+//		builder.setBolt("DOC_FETCHER_BOLT", new DocFetcherBolt(), 10).shuffleGrouping("CRAWLER_QUEUE_SPOUT");
 
-		builder.setBolt(DOC_UPLOAD_BOLT, docUploadBolt, 20).shuffleGrouping(DOC_FETCHER_BOLT);
+//		builder.setBolt("DOC_UPLOAD_BOLT",  new DocUploadBolt(), 20).shuffleGrouping("DOC_FETCHER_BOLT");
 
-		builder.setBolt(LINK_EXTRACTOR_BOLT, linkExtractorBolt, 10).shuffleGrouping(DOC_FETCHER_BOLT);
+//		builder.setBolt("LINK_EXTRACTOR_BOLT", new LinkExtractorBolt(), 20).shuffleGrouping("DOC_FETCHER_BOLT");
 
-		builder.setBolt(LINK_FILTER_BOLT, linkFilterBolt, 20).shuffleGrouping(LINK_EXTRACTOR_BOLT);
+//		builder.setBolt("LINK_FILTER_BOLT", new LinkFilterBolt(), 20).shuffleGrouping("LINK_EXTRACTOR_BOLT");
 
 		LocalCluster cluster = new LocalCluster();
 
@@ -129,6 +128,18 @@ public class MasterServer {
 			QueueFactory.getQueueInstance().add(task);
 		}
 
+		info = new URLInfo("https://news.google.com/");
+		robotsLocation = info.isSecure() ? "https://" : "http://";
+		robotsLocation += info.getHostName() + "/robots.txt";
+		robotsTxtInfo = RobotsHelper.parseRobotsTxt(robotsLocation);
+		task = new CrawlerTask(getStartURL(), robotsTxtInfo);
+
+		if (RobotsHelper.isOKtoCrawl(info, getStartURL(), task) && RobotsHelper.isOKtoParse(info, robotsTxtInfo)) {
+			QueueFactory.getQueueInstance().add(task);
+		}
+
+		registerRcvNotice();
+
 
 		cluster.submitTopology("test", config,
 						builder.createTopology());
@@ -140,11 +151,11 @@ public class MasterServer {
 				e.printStackTrace();
 			}
 		}
+		while (true);
+//    cluster.killTopology("test");
+//    cluster.shutdown();
 
-		cluster.killTopology("test");
-		cluster.shutdown();
-
-		System.exit(0);
+//    System.exit(0);
 	}
 
 
@@ -157,7 +168,6 @@ public class MasterServer {
 			String urlAdd2Queue = request.queryParams("added");
 			WorkerStatus status = new WorkerStatus(ip, port, getRequests, webpageSaved, urlAdd2Queue);
 			workerMap.put(ip+ ":" + port, status);
-			System.out.println("here");
 			return "received from " + ip + ":" + port;
 		});
 	}
@@ -184,5 +194,52 @@ public class MasterServer {
 			body.append("</body></html>");
 			return body.toString();
 		});
+	}
+
+	public static void registerRcvNotice() {
+		get("/notice", (request, response) -> {
+			CrawlerConfig.setTotalWorker(Integer.valueOf(request.queryParams("total")));
+			CrawlerConfig.setMyIndex(Integer.valueOf(request.queryParams("you")));
+			for (int i = 0; i < CrawlerConfig.getTotalWorker(); i++) {
+				contactMap.put(i, request.queryParams("worker" + i));
+			}
+			return "receive notice";
+		});
+	}
+
+	private static class periodicallyNotice extends TimerTask {
+		@Override
+		public void run() {
+			int index = 0;
+			Set<String> toRemove = new HashSet<>();
+			for (String addr : workerMap.keySet()) {
+				StringBuilder address = new StringBuilder("http://");
+				address.append(addr);
+				address.append("/notice");
+				address.append("?total=").append(workerMap.size());
+				int cnt = 0;
+				for (String innerAddr : workerMap.keySet()) {
+					address.append("&worker").append(cnt++).append("=").append(innerAddr);
+				}
+				address.append("&you=").append(index++);
+				URL url;
+				try {
+					url = new URL(address.toString());
+					HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+					System.out.println(url.toString());
+					conn.setDoOutput(true);
+					conn.setRequestMethod("GET");
+					conn.setConnectTimeout(2000);
+					if (conn.getResponseCode() != 200) {
+						System.out.println("Something wrong");
+					}
+				} catch (IOException e) {
+					toRemove.add(addr);
+				}
+			}
+			for (String remove : toRemove) {
+				workerMap.remove(remove);
+			}
+		}
 	}
 }

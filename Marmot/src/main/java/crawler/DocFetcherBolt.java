@@ -20,7 +20,7 @@ import java.util.UUID;
 public class DocFetcherBolt implements IRichBolt {
 //	static Logger log = LogManager.getLogger(DocFetcherBolt.class);
 	String executorId = UUID.randomUUID().toString();
-	Fields schema = new Fields("url", "content", "type");
+	Fields schema = new Fields("url", "content", "type", "id");
 	StorageInterface db;
 	int inc = 0;
 
@@ -50,20 +50,32 @@ public class DocFetcherBolt implements IRichBolt {
 			content = document.outerHtml();
 			if (content.toLowerCase().startsWith("<!doctype html") || content.toLowerCase().startsWith("<html")) {
 				type = "html";
+				String lang = document.getElementsByTag("html").first().attr("lang");
+				if (lang.toLowerCase().startsWith("en")) {
+					if (db.checkIfFull()) {
+						CrawlerConfig.setWhetherEnd(true);
+					}
+					String docID = UUID.randomUUID().toString();
+					if (!db.ifMD5Exists(content)) {
+						collector.emit(new Values(url, content, type, docID));
+					} else {
+						System.out.println(url + " is up to date");
+					}
+					db.addDocument(url, content, docID);
+				}
 			} else {
 				type = "xml";
+				if (db.checkIfFull()) {
+					CrawlerConfig.setWhetherEnd(true);
+				}
+				String docID = UUID.randomUUID().toString();
+				if (!db.ifMD5Exists(content)) {
+					collector.emit(new Values(url, content, type, docID));
+				}
+				db.addDocument(url, content, docID);
 			}
-			if (db.checkIfFull()) {
-				CrawlerConfig.setWhetherEnd(true);
-			}
-			if (!db.ifMD5Exists(content)) {
-//				log.info(url + ": Downloading");
-				db.addDocument(url, content);
-			}
-			collector.emit(new Values(url, content, type));
-//			log.debug(getExecutorId() + " emitting " + url);
 		} catch (IOException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 	}
 

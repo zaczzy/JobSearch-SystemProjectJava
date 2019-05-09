@@ -19,8 +19,7 @@ import java.util.UUID;
 public class DocUploadBolt implements IRichBolt {
 //	static Logger log = LogManager.getLogger(DocFetcherBolt.class);
 	String executorId = UUID.randomUUID().toString();
-	Fields schema = new Fields("url", "content");
-	int inc = 0;
+	Fields schema = new Fields("url", "content", "type", "id");
 
 	OutputCollector collector;
 
@@ -43,19 +42,22 @@ public class DocUploadBolt implements IRichBolt {
 		String suffix = "." + input.getStringByField("type");
 		String url = input.getStringByField("url");
 		URLInfo info = new URLInfo(url);
+		String docID = input.getStringByField("id");
 		try {
-			String docID = UUID.randomUUID().toString();
-			S3Service.getInstance().putFile("test2/" + docID + suffix, content);
-			String[][] fields = new String[3][2];
+			S3Service.getInstance().putFile("test3/" + docID + suffix, content);
+			System.out.println("Upload " + url);
+			String[][] fields = new String[4][2];
 			fields[0][0] = "url";
 			fields[0][1] = input.getStringByField("url");
 			fields[1][0] = "host";
 			fields[1][1] = info.getHostName();
 			fields[2][0] = "added time";
 			fields[2][1] = new Date().toString();
+			fields[3][0] = "isNew";
+			fields[3][1] = "true";
 			DynamoDBService.getInstance().put(docID, fields);
 			CrawlerConfig.incPagesStored();
-		} catch (IOException e) {
+		} catch (IOException | software.amazon.awssdk.core.exception.SdkClientException e) {
 			e.printStackTrace();
 		}
 	}

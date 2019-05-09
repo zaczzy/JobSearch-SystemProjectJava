@@ -49,7 +49,7 @@ public class LinkFilterBolt implements IRichBolt {
 		robotsLocation += info.getHostName() + "/robots.txt";
 		info.setFilePath(robotsLocation);
 		String host = info.getHostName();
-//		int mod = host.hashCode() % FilterSharedFactory.totalMachines;
+		int mod = host.hashCode() % FilterSharedFactory.totalMachines;
 //		System.out.println(mod);
 //		if (mod != FilterSharedFactory.myNumber) {
 //			int destPort = mod + 8000;
