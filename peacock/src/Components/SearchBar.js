@@ -7,7 +7,6 @@ import { startSearch, setResults, startWebSearch, setWebResults } from '../Redux
 import { push } from 'connected-react-router'
 import { ResultType } from './../Redux/Constants'
 
-import ResultsData from './../FakeData/FakeResults'
 import ShoppingData from './../FakeData/FakeShopping'
 import WeatherData from './../FakeData/FakeWeather'
 
@@ -41,17 +40,20 @@ class SearchBar extends Component {
     });
   }
 
-  /**
-   * This method is now only serving template data
-   * TODO: Implement Real Search
-   */
   search = (value) => {
     this.props.dispatch(push('/search?query=' + value))
     this.props.dispatch(startSearch())
     this.props.dispatch(startWebSearch())
-    const shuffled = ResultsData.sort(() => 0.5 - Math.random());
-    let selected = shuffled.slice(0, 15);
-    setTimeout(function(props){ props.dispatch(setResults(selected)); }, 900, this.props);
+    /* Query Dolphin Engine */
+    fetch('http://localhost:8089/fake?query=' + value)
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(json) {
+        this.props.dispatch(setResults(json));
+      }.bind(this));
+      
+    /* TODO: Should replace these with corresponding backend */
     if (value.includes("weather")) {
       setTimeout(function(props){ 
         props.dispatch(setWebResults(ResultType.WEATHER_TYPE, WeatherData)); 
