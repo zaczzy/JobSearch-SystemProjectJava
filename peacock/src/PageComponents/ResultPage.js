@@ -16,7 +16,7 @@ class ResultPage extends Component {
   componentDidMount() {
     const values = queryString.parse(this.props.location.search)
     if (this.props.webResultData.length === 0) {
-      fetch('http://localhost:8089/fake?query=' + values.query)
+      fetch('http://localhost:8089/real?query=' + values.query)
       .then(function(response) {
         return response.json();
       })

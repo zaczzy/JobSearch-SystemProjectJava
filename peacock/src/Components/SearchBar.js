@@ -45,7 +45,7 @@ class SearchBar extends Component {
     this.props.dispatch(startSearch())
     this.props.dispatch(startWebSearch())
     /* Query Dolphin Engine */
-    fetch('http://localhost:8089/fake?query=' + value)
+    fetch('http://localhost:8089/real?query=' + value)
       .then(function(response) {
         return response.json();
       })
