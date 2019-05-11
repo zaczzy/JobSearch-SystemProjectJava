@@ -28,7 +28,6 @@ public class DocSpout implements IRichSpout {
     int index = 0;
     private LinkedBlockingQueue<String> fileNames;
     private boolean finished = false;
-    private final String folder = "test3/";
     private Loader loader;
 
     @Override
@@ -40,6 +39,7 @@ public class DocSpout implements IRichSpout {
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         this.collector = collector;
         this.fileNames = new LinkedBlockingQueue<>();
+        String folder = (String) conf.get("folder");
         this.loader = new Loader(folder, fileNames);
         loader.start();
         System.out.println("Loader started!");
