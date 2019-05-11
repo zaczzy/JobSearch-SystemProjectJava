@@ -1,6 +1,11 @@
 import aws.rds.Credentials;
 import aws.rds.Word;
+import aws.s3.S3Service;
+import com.chimbori.crux.articles.Article;
+import com.chimbori.crux.articles.ArticleExtractor;
 import org.javalite.activejdbc.Base;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -21,11 +26,16 @@ public class RealAgent {
         String[] queries = query.split(" ");
         searchFor(queries);
         Base.close();
-        
+
         /* Populate Results from Ranking */
         List<String> ranking = getTopK(20);
         for (String doc : ranking) {
-            results.add(getResultFrom(doc));
+            try {
+                addResultFrom(doc);
+            } catch (Exception e) {
+                System.out.println("[🧨 ERROR: ] Failed to add result");
+                e.printStackTrace();
+            }
         }
     }
 
@@ -61,11 +71,32 @@ public class RealAgent {
                 .collect(Collectors.toList());
     }
 
-    private SearchResult getResultFrom(String docId) {
-        String title = docId;
+    private void addResultFrom(String docId) {
+        Article article = null;
+        try {
+            String url = docId + ".html";
+            String content = S3Service.getInstance().getFileAsString(url);
+            Document doc = Jsoup.parse(content);
+            article = ArticleExtractor.with("", doc).extractMetadata().extractContent().article();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (article == null) {
+            System.err.println("[❌ERROR:] Article is NULL !!!");
+        }
+        String title = article.title;
         String url = "http://example.com/bed/ball.html";
-        String excerpt = documentMeta.get(docId).toString();
+        String excerpt = getExerptFor(article) + documentMeta.get(docId).toString();
         results.add(new SearchResult(title, url, excerpt));
+    }
+
+    private String getExerptFor(Article article) {
+        String mainContent = article.description + article.document.text();
+        if (mainContent.length() < 300) {
+            return mainContent;
+        } else {
+            return mainContent.substring(0, 300);
+        }
     }
 
     public List<SearchResult> getResults() {

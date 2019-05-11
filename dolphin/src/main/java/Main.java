@@ -6,7 +6,7 @@ import static spark.Spark.port;
 public class Main {
 
     public static void main(String[] args) {
-        port(8089);
+        port(8085);
         CorsFilter.apply();
 
         /* Fake Results for testing Peacock Frontend*/
@@ -20,9 +20,15 @@ public class Main {
         /* Real Query Endpoint */
         get("real", (req, res) -> {
             String query = req.queryParams("query");
-            res.type("application/json");
-            RealAgent agent = new RealAgent(query);
-            return JSON.toJSONString(agent.getResults());
+            System.out.println(query);
+            try {
+                res.type("application/json");
+                RealAgent agent = new RealAgent(query);
+                return JSON.toJSONString(agent.getResults());
+            } catch (Exception e) {
+                e.printStackTrace();
+                return "Fucked up";
+            }
         });
 
 
