@@ -1,1 +1,4 @@
 logs/
+src/main/java/aws/dynamodb/Credentials.java
+src/main/java/aws/rds/Credentials.java
+src/main/java/aws/s3/Credentials.java

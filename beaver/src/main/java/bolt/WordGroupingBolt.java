@@ -47,6 +47,7 @@ public class WordGroupingBolt implements IRichBolt {
         sentinel.setWorking(true);
         int weight = input.getIntegerByField("weight");
         String id = input.getStringByField("Id");
+        int pagerank = input.getIntegerByField("pagerank");
         sentinel.setBuffer(false);
         DocObj doc = documents.get(id);
         if(weight < 0) {
@@ -59,7 +60,7 @@ public class WordGroupingBolt implements IRichBolt {
                     List<Integer> list = doc.getPositions(word);
                     int tf = doc.getFreq(word);
                     sentinel.setBuffer(true);
-                    collector.emit(new Values(word, id, list, tf));
+                    collector.emit(new Values(word, id, list, tf, pagerank));
                 }
             }
         } else {
@@ -79,7 +80,7 @@ public class WordGroupingBolt implements IRichBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("word", "Id", "hits", "tf"));
+        declarer.declare(new Fields("word", "Id", "hits", "tf", "pagerank"));
     }
 
     @Override

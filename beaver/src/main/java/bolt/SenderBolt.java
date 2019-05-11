@@ -33,10 +33,11 @@ public class SenderBolt implements IRichBolt {
         String docId = tuple.getStringByField("Id");
         String list = tuple.getValueByField("hits").toString();
         Integer tf = (Integer) tuple.getValueByField("tf");
+        Integer pageRank = (Integer) tuple.getValueByField("pagerank");
         sentinel.setBuffer(false);
-        //System.out.println(word + ":" + docId + ":" + list + ":" + tf);
+        //System.out.println(word + ":" + docId + ":" + list + ":" + tf + ":" + pageRank);
         /* Send to DB*/
-        DBManager.getInstance().addRecord(word, docId, list, tf);
+        DBManager.getInstance().addRecord(word, docId, list, tf, pageRank);
         sentinel.setWorking(false);
     }
 

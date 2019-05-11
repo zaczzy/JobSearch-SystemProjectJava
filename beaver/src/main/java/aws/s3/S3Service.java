@@ -63,7 +63,7 @@ public class S3Service {
         /* Paginated Response as Iterable */
         ListObjectsV2Iterable listRes = client.listObjectsV2Paginator(listReq);
         /* Retrieve Results*/
-        listRes.contents().stream().limit(800).forEach(content -> {
+        listRes.contents().stream().limit(10000).forEach(content -> {
             if (content.size() > 0) { collection.add(content.key()); }
         });
         return collection;

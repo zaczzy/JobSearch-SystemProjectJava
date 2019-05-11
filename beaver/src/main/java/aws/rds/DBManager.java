@@ -60,9 +60,9 @@ public class DBManager {
      * @param hits -- varchar(16*1024) field
      * @param tf -- int field
      */
-    public void addRecord(String word, String docId, String hits, int tf) {
+    public void addRecord(String word, String docId, String hits, int tf, int rank) {
         synchronized (commitQueue) {
-            commitQueue.add(new Commit(word, docId, hits, tf));
+            commitQueue.add(new Commit(word, docId, hits, tf, rank));
         }
     }
 
@@ -87,10 +87,11 @@ public class DBManager {
      * Data object for a single entry
      */
     private class Commit {
-        String word, docId, hits; int tf;
-        public Commit(String word, String docId, String hits, int tf) {
+        String word, docId, hits; int tf; int pagerank;
+        public Commit(String word, String docId, String hits, int tf, int rank) {
             this.word = word; this.docId = docId; this.hits = hits;
             this.tf = tf;
+            this.pagerank = rank;
         }
     }
 
@@ -139,7 +140,8 @@ public class DBManager {
                         Word.createIt("word", commit.word,
                                 "docId", commit.docId,
                                 "hits", commit.hits,
-                                "tf", commit.tf);
+                                "tf", commit.tf,
+                                "pagerank", commit.pagerank);
                     } catch (DBException e) {
                         System.err.println("[ ❌ Error ] " + e.getMessage());
                         System.err.println("[ 🧨 Cause ] #" + commit.word + "# with " + commit.hits);

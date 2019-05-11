@@ -1,8 +1,5 @@
 import aws.rds.DBManager;
-import bolt.DocDownloaderBolt;
-import bolt.DocParserBolt;
-import bolt.SenderBolt;
-import bolt.WordGroupingBolt;
+import bolt.*;
 import model.Sentinel;
 import org.apache.logging.log4j.core.config.Configurator;
 import spout.DocSpout;
@@ -11,6 +8,10 @@ import org.apache.storm.LocalCluster;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.utils.Utils;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 import org.apache.logging.log4j.*;
 import sun.rmi.runtime.Log;
@@ -28,7 +29,8 @@ public class Indexer {
         TopologyBuilder builder = new TopologyBuilder();
 
         builder.setSpout("spout", new DocSpout(), 1);
-        builder.setBolt("downloader", new DocDownloaderBolt(), 4).shuffleGrouping("spout");
+        builder.setBolt("adder", new DynamoDbBolt(), 5).shuffleGrouping("spout");
+        builder.setBolt("downloader", new DocDownloaderBolt(), 4).shuffleGrouping("adder");
         builder.setBolt("parser", new DocParserBolt(), 4).shuffleGrouping("downloader");
         builder.setBolt("grouping", new WordGroupingBolt(), 4).fieldsGrouping("parser", new Fields("Id"));
         builder.setBolt("sender", new SenderBolt(), 10).shuffleGrouping("grouping");
@@ -50,12 +52,21 @@ public class Indexer {
         Sentinel sentinel = Sentinel.getInstance();
 
         /* Shutdown*/
-        Utils.sleep(600000);
-        do {
-            Utils.sleep(30000);
-        } while(!sentinel.finished());
+        Utils.sleep(5000);
+//        do {
+//            Utils.sleep(120000);
+//            System.out.println(sentinel.count.get());
+//            System.out.println(sentinel.inBuffer.get());
+//        } while(!sentinel.finished());
+        System.out.println("Press [Enter] to shut down this node...");
+        try {
+            (new BufferedReader(new InputStreamReader(System.in))).readLine();
+        } catch(IOException e) {
+
+        }
 
         System.out.println("Shutdown cluster");
+
         cluster.killTopology(topologyName);
         cluster.shutdown();
 

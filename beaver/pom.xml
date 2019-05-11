@@ -114,7 +114,17 @@
             <version>7.4.0</version>
         </dependency>
         <!-- END - Lucene Dependencies -->
-
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>dynamodb</artifactId>
+            <version>2.5.37</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.cruxframework/crux-core -->
+        <dependency>
+            <groupId>com.chimbori.crux</groupId>
+            <artifactId>crux</artifactId>
+            <version>2.1.0</version>   <!-- Get latest version number from https://github.com/chimbori/crux/releases -->
+        </dependency>
 
     </dependencies>
     <build>

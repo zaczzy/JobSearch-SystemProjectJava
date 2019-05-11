@@ -10,7 +10,8 @@ public class RDSTest {
         Word.createIt("word", "testWord",
                 "docId", "testDoc",
                 "hits", "[0]",
-                "tf", 20);
+                "tf", 20,
+                "pagerank", 1000);
         Base.close();
     }
 }

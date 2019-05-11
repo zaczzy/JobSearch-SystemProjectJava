@@ -5,11 +5,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Sentinel {
     private static Sentinel singleton = null;
 
-    private AtomicInteger count;
-    private AtomicInteger inBuffer;
+    public AtomicInteger count;
+    public AtomicInteger inBuffer;
 
     private Sentinel() {
-        count = new AtomicInteger(1);
+        count = new AtomicInteger(0);
         inBuffer = new AtomicInteger(0);
     }
 
@@ -36,7 +36,8 @@ public class Sentinel {
         }
     }
 
-    public boolean finished() {
-        return (count.intValue() == 0 && inBuffer.intValue() == 0);
+    public synchronized boolean finished() {
+        return true;
+        //return (count.get() == 0 && inBuffer.get() == 0);
     }
 }

@@ -27,17 +27,14 @@ public class DocDownloaderBolt implements IRichBolt {
     public void execute(Tuple tuple) {
         sentinel.setWorking(true);
         String docName = tuple.getStringByField("docName");
+        String id = tuple.getStringByField("Id");
+        int pagerank = tuple.getIntegerByField("pagerank");
         sentinel.setBuffer(false);
         try {
             String content = S3Service.getInstance().getFileAsString(docName);
-            int index = docName.lastIndexOf('.');
-            if(index < 0) {
-                index = docName.length();
-            }
-            String id = docName.substring(0, index);
             System.out.println("[DOC NAME 💫]:" + docName + "[DOC ID ⛱]" + id);
             sentinel.setBuffer(true);
-            collector.emit(new Values(id, content));
+            collector.emit(new Values(id, pagerank, content));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -52,7 +49,7 @@ public class DocDownloaderBolt implements IRichBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("Id", "doc"));
+        declarer.declare(new Fields("Id", "pagerank", "doc"));
     }
 
     @Override

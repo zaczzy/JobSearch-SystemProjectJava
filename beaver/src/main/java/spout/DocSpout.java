@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.List;
 import java.util.Random;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import aws.s3.S3Service;
 import model.Sentinel;
@@ -24,9 +26,11 @@ public class DocSpout implements IRichSpout {
 
     private SpoutOutputCollector collector;
     int index = 0;
-    List<String> fileNames;
+    private LinkedBlockingQueue<String> fileNames;
     private Sentinel sentinel;
     private boolean finished = false;
+    private final String folder = "test3/";
+    private Loader loader;
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
@@ -37,26 +41,31 @@ public class DocSpout implements IRichSpout {
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         this.collector = collector;
         this.sentinel = Sentinel.getInstance();
-        fileNames = S3Service.getInstance().listAllFiles("test2/");
-        System.out.println("file names loaded!");
+        sentinel.setWorking(true);
+        this.fileNames = new LinkedBlockingQueue<>();
+        this.loader = new Loader(folder, fileNames);
+        loader.start();
+        System.out.println("Loader started!");
     }
 
     @Override
     public void nextTuple() {
-        Utils.sleep(200);
+        Utils.sleep(50);
         if (index < fileNames.size()) {
             sentinel.setBuffer(true);
-            collector.emit(new Values(fileNames.get(index)), index);
+            collector.emit(new Values(fileNames.poll()), index);
             index++;
         } else if(!finished) {
             sentinel.setWorking(false);
             finished = true;
         }
+        //String name = fileNames.take();
+
     }
 
     @Override
     public void close() {
-
+        System.out.println("SPOUT INDEX: " + Integer.toString(index));
     }
 
     @Override
@@ -75,6 +84,7 @@ public class DocSpout implements IRichSpout {
 
     @Override
     public void fail(Object id) {
+        System.err.println("FAILED!");
     }
 
     @Override
