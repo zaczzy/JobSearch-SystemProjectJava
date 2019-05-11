@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import org.apache.logging.log4j.*;
-import sun.rmi.runtime.Log;
 
 /**
  * Main Indexer class

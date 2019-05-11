@@ -64,6 +64,7 @@ public class WordGroupingBolt implements IRichBolt {
                     //sentinel.setBuffer(true);
                     collector.emit(new Values(word, id, list, tf, pagerank, norm, wtf));
                 }
+                System.out.println("[ ✅ FINSIHED " + id + " ]: finished sending to sender bolt for " + id);
             }
         } else {
             if(doc == null) {

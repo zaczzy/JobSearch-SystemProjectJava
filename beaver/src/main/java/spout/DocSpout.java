@@ -50,7 +50,7 @@ public class DocSpout implements IRichSpout {
 
     @Override
     public void nextTuple() {
-        Utils.sleep(50);
+        Utils.sleep(20);
         try {
             String name = fileNames.take();
             collector.emit(new Values(name), index);
