@@ -44,11 +44,11 @@ public class WordGroupingBolt implements IRichBolt {
 
     @Override
     public void execute(Tuple input) {
-        sentinel.setWorking(true);
+        //sentinel.setWorking(true);
         int weight = input.getIntegerByField("weight");
         String id = input.getStringByField("Id");
         int pagerank = input.getIntegerByField("pagerank");
-        sentinel.setBuffer(false);
+        //sentinel.setBuffer(false);
         DocObj doc = documents.get(id);
         if(weight < 0) {
             //EOS received
@@ -59,8 +59,10 @@ public class WordGroupingBolt implements IRichBolt {
                 for(String word : words) {
                     List<Integer> list = doc.getPositions(word);
                     int tf = doc.getFreq(word);
-                    sentinel.setBuffer(true);
-                    collector.emit(new Values(word, id, list, tf, pagerank));
+                    float norm = doc.L2Norm();
+                    float wtf = tf / norm;
+                    //sentinel.setBuffer(true);
+                    collector.emit(new Values(word, id, list, tf, pagerank, norm, wtf));
                 }
             }
         } else {
@@ -75,12 +77,12 @@ public class WordGroupingBolt implements IRichBolt {
             doc.addFreq(word, weight);
             documents.put(id, doc);
         }
-        sentinel.setWorking(false);
+        //sentinel.setWorking(false);
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("word", "Id", "hits", "tf", "pagerank"));
+        declarer.declare(new Fields("word", "Id", "hits", "tf", "pagerank", "norm", "wtf"));
     }
 
     @Override

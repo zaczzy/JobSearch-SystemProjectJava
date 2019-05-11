@@ -45,4 +45,13 @@ public class DocObj {
             return 0;
         }
     }
+
+    public float L2Norm() {
+        int sum_square = 0;
+        for(Map.Entry<String, Integer> entry : freqs.entrySet()) {
+            sum_square += Math.pow(entry.getValue(), 2);
+        }
+        double norm = Math.sqrt(sum_square);
+        return (float) norm;
+    }
 }

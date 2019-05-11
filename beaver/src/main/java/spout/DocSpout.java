@@ -53,7 +53,7 @@ public class DocSpout implements IRichSpout {
         Utils.sleep(50);
         try {
             String name = fileNames.take();
-            collector.emit(new Values(name, index));
+            collector.emit(new Values(name), index);
             index++;
         } catch(InterruptedException e) {
 

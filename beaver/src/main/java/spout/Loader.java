@@ -38,7 +38,7 @@ public class Loader extends Thread {
         /* Paginated Response as Iterable */
         ListObjectsV2Iterable listRes = client.listObjectsV2Paginator(listReq);
         /* Retrieve Results*/
-        listRes.contents().stream().forEach(content -> {
+        listRes.contents().stream().skip(1600).forEach(content -> {
             if (content.size() > 0) { Q.add(content.key()); }
         });
     }

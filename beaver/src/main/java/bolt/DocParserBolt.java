@@ -69,23 +69,27 @@ public class DocParserBolt implements IRichBolt {
 
     @Override
     public void execute(Tuple input) {
-        sentinel.setWorking(true);
+        //sentinel.setWorking(true);
         String content = input.getStringByField("doc");
         String id = input.getStringByField("Id");
         int pagerank = input.getIntegerByField("pagerank");
-        sentinel.setBuffer(false);
+        //sentinel.setBuffer(false);
 
         // Parse with Jsoup
         Document doc = Jsoup.parse(content);
-        Elements meta = doc.getElementsByTag("meta");
 
         // Parse with Crux
         Article article = ArticleExtractor.with("", doc).extractMetadata().extractContent().article();
 
+        // Eliminate irrelevant tags
+        doc.select("select").remove();
+        doc.select("script").remove();
+        doc.select("form").remove();
+
         Document newdoc = article.document;
         if(newdoc == null) {
             System.err.println("Crux: NULL");
-            sentinel.setWorking(false);
+            //sentinel.setWorking(false);
             return;
         }
 
@@ -100,13 +104,16 @@ public class DocParserBolt implements IRichBolt {
                 body = ele.text();
             }
         }
+        //TODO: Send body off an additional branch
 
-        String title = doc.title();
+        String title = article.title;
+        String description = article.description;
         Elements headerOne = doc.select("h1");
         Elements headerTwo = doc.select("h2");
 
         // Iterate and emit
         int pos = 0;
+
         //Parse title
         if(title != null && !title.equals("")) {
             Analyzer analyzer_title = new StandardAnalyzer();
@@ -115,7 +122,7 @@ public class DocParserBolt implements IRichBolt {
             try {
                 tokenStream.reset();
                 while (tokenStream.incrementToken()) {
-                    sentinel.setBuffer(true);
+                    //sentinel.setBuffer(true);
                     collector.emit(new Values(id, attr.toString(), pos, title_w, pagerank));
                     pos++;
                 }
@@ -124,26 +131,22 @@ public class DocParserBolt implements IRichBolt {
             }
         }
 
-        if(title == null) {
-            title = "[No title for this document]";
-        }
-        //Parse meta data
-        for(Element ele : meta) {
-            String text = ele.attr("content");
-            Analyzer analyzer_meta = new StandardAnalyzer();
-            TokenStream tokenStream = analyzer_meta.tokenStream("content", text);
+        if(description != null && !description.equals("")) {
+            Analyzer analyzer_desc = new StandardAnalyzer();
+            TokenStream tokenStream = analyzer_desc.tokenStream("content", description);
             CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
             try {
                 tokenStream.reset();
                 while (tokenStream.incrementToken()) {
-                    sentinel.setBuffer(true);
+                    //sentinel.setBuffer(true);
                     collector.emit(new Values(id, attr.toString(), pos, meta_w, pagerank));
                     pos++;
                 }
-            } catch (IOException e) {
+            } catch(IOException e) {
 
             }
         }
+
         //Parse h1
         for(Element ele : headerOne) {
             String text = ele.text();
@@ -153,7 +156,7 @@ public class DocParserBolt implements IRichBolt {
             try {
                 tokenStream.reset();
                 while (tokenStream.incrementToken()) {
-                    sentinel.setBuffer(true);
+                    //sentinel.setBuffer(true);
                     collector.emit(new Values(id, attr.toString(), -1, headerOne_w, pagerank));
                 }
             } catch (IOException e) {
@@ -169,7 +172,7 @@ public class DocParserBolt implements IRichBolt {
             try {
                 tokenStream.reset();
                 while (tokenStream.incrementToken()) {
-                    sentinel.setBuffer(true);
+                    //sentinel.setBuffer(true);
                     collector.emit(new Values(id, attr.toString(), -1, headerTwo_w, pagerank));
                 }
             } catch (IOException e) {
@@ -183,7 +186,7 @@ public class DocParserBolt implements IRichBolt {
         try {
             tokenStream.reset();
             while (tokenStream.incrementToken()) {
-                sentinel.setBuffer(true);
+                //sentinel.setBuffer(true);
                 collector.emit(new Values(id, attr.toString(), pos, 1, pagerank));
                 pos++;
             }
@@ -192,9 +195,9 @@ public class DocParserBolt implements IRichBolt {
         }
 
         //emit EOS
-        sentinel.setBuffer(true);
+        //sentinel.setBuffer(true);
         collector.emit(new Values(id, "EOS", pos, -1, pagerank));
-        sentinel.setWorking(false);
+        //sentinel.setWorking(false);
     }
 
     @Override

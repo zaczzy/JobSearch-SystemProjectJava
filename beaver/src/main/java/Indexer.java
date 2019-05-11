@@ -30,7 +30,7 @@ public class Indexer {
 
         builder.setSpout("spout", new DocSpout(), 1);
         builder.setBolt("adder", new DynamoDbBolt(), 5).shuffleGrouping("spout");
-        builder.setBolt("downloader", new DocDownloaderBolt(), 4).shuffleGrouping("adder");
+        builder.setBolt("downloader", new DocDownloaderBolt(), 8).shuffleGrouping("adder");
         builder.setBolt("parser", new DocParserBolt(), 4).shuffleGrouping("downloader");
         builder.setBolt("grouping", new WordGroupingBolt(), 4).fieldsGrouping("parser", new Fields("Id"));
         builder.setBolt("sender", new SenderBolt(), 10).shuffleGrouping("grouping");

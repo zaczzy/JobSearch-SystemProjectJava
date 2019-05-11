@@ -27,18 +27,20 @@ public class SenderBolt implements IRichBolt {
 
     @Override
     public void execute(Tuple tuple) {
-        sentinel.setWorking(true);
+        //sentinel.setWorking(true);
         /* Extract Field: "word", "Id", "hits", "tf" */
         String word = tuple.getStringByField("word");
         String docId = tuple.getStringByField("Id");
         String list = tuple.getValueByField("hits").toString();
         Integer tf = (Integer) tuple.getValueByField("tf");
         Integer pageRank = (Integer) tuple.getValueByField("pagerank");
-        sentinel.setBuffer(false);
+        float norm = tuple.getFloatByField("norm");
+        float wtf = tuple.getFloatByField("wtf");
+        //sentinel.setBuffer(false);
         //System.out.println(word + ":" + docId + ":" + list + ":" + tf + ":" + pageRank);
         /* Send to DB*/
-        DBManager.getInstance().addRecord(word, docId, list, tf, pageRank);
-        sentinel.setWorking(false);
+        DBManager.getInstance().addRecord(word, docId, list, tf, pageRank, norm, wtf);
+        //sentinel.setWorking(false);
     }
 
     @Override
