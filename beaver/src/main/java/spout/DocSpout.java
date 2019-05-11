@@ -51,16 +51,13 @@ public class DocSpout implements IRichSpout {
     @Override
     public void nextTuple() {
         Utils.sleep(50);
-        if (index < fileNames.size()) {
-            sentinel.setBuffer(true);
-            collector.emit(new Values(fileNames.poll()), index);
+        try {
+            String name = fileNames.take();
+            collector.emit(new Values(name, index));
             index++;
-        } else if(!finished) {
-            sentinel.setWorking(false);
-            finished = true;
-        }
-        //String name = fileNames.take();
+        } catch(InterruptedException e) {
 
+        }
     }
 
     @Override
