@@ -32,7 +32,7 @@ public class DBManager {
      *  Configure Instance
      */
     private DBManager() {
-        workerPool = new DBWorker[16];
+        workerPool = new DBWorker[128];
         for (int i = 0; i < workerPool.length; i ++) {
             workerPool[i] = new DBWorker();
         }
@@ -60,9 +60,9 @@ public class DBManager {
      * @param hits -- varchar(16*1024) field
      * @param tf -- int field
      */
-    public void addRecord(String word, String docId, String hits, int tf, int rank) {
+    public void addRecord(String word, String docId, String hits, int tf, int rank, float norm, float wtf) {
         synchronized (commitQueue) {
-            commitQueue.add(new Commit(word, docId, hits, tf, rank));
+            commitQueue.add(new Commit(word, docId, hits, tf, rank, norm, wtf));
         }
     }
 
@@ -87,11 +87,13 @@ public class DBManager {
      * Data object for a single entry
      */
     private class Commit {
-        String word, docId, hits; int tf; int pagerank;
-        public Commit(String word, String docId, String hits, int tf, int rank) {
+        String word, docId, hits; int tf; int pagerank; float normalizer; float wtf;
+        public Commit(String word, String docId, String hits, int tf, int rank, float norm, float wtf) {
             this.word = word; this.docId = docId; this.hits = hits;
             this.tf = tf;
             this.pagerank = rank;
+            this.normalizer = norm;
+            this.wtf = wtf;
         }
     }
 
@@ -127,6 +129,7 @@ public class DBManager {
         @Override
         public void run() {
             Base.open(Credentials.jdbcDriver, Credentials.dbUrl, Credentials.dbUser, Credentials.dbUserPW);
+            long i = 0;
             while (started) {
                 Commit commit = commitQueue.poll();
                 if (commit != null) {
@@ -141,7 +144,13 @@ public class DBManager {
                                 "docId", commit.docId,
                                 "hits", commit.hits,
                                 "tf", commit.tf,
-                                "pagerank", commit.pagerank);
+                                "pagerank", commit.pagerank,
+                                "normalizer", commit.normalizer,
+                                "wtf", commit.wtf);
+                        i++;
+                        if (i % 4096 == 0) {
+                            System.out.println("[🐳 DB Thread: ] Thread " + Thread.currentThread() + " emitted 4k entries");
+                        }
                     } catch (DBException e) {
                         System.err.println("[ ❌ Error ] " + e.getMessage());
                         System.err.println("[ 🧨 Cause ] #" + commit.word + "# with " + commit.hits);
