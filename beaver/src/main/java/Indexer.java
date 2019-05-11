@@ -1,3 +1,4 @@
+import aws.rds.DBBulkManager;
 import aws.rds.DBManager;
 import bolt.*;
 import model.Sentinel;
@@ -41,22 +42,15 @@ public class Indexer {
         conf.setNumWorkers(1);
 
         /* Start DB Connection Pool */
-        DBManager.getInstance().start();
+        DBBulkManager.getInstance().start();
 
         /* Start Topology */
         String topologyName = "Indexer";
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology(topologyName, conf, builder.createTopology());
 
-        Sentinel sentinel = Sentinel.getInstance();
-
         /* Shutdown*/
         Utils.sleep(5000);
-//        do {
-//            Utils.sleep(120000);
-//            System.out.println(sentinel.count.get());
-//            System.out.println(sentinel.inBuffer.get());
-//        } while(!sentinel.finished());
         System.out.println("Press [Enter] to shut down this node...");
         try {
             (new BufferedReader(new InputStreamReader(System.in))).readLine();
@@ -70,6 +64,6 @@ public class Indexer {
         cluster.shutdown();
 
         /* Close DB Connection Pool */
-        DBManager.getInstance().shutDown();
+        DBBulkManager.getInstance().shutDown();
     }
 }
