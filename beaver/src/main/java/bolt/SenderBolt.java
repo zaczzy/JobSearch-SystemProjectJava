@@ -17,17 +17,14 @@ import java.util.Map;
 public class SenderBolt implements IRichBolt {
 
     private OutputCollector collector;
-    private Sentinel sentinel;
 
     @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
-        this.sentinel = Sentinel.getInstance();
     }
 
     @Override
     public void execute(Tuple tuple) {
-        //sentinel.setWorking(true);
         /* Extract Field: "word", "Id", "hits", "tf" */
         String word = tuple.getStringByField("word");
         String docId = tuple.getStringByField("Id");

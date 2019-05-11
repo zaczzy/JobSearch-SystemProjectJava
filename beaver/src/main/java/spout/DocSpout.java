@@ -27,7 +27,6 @@ public class DocSpout implements IRichSpout {
     private SpoutOutputCollector collector;
     int index = 0;
     private LinkedBlockingQueue<String> fileNames;
-    private Sentinel sentinel;
     private boolean finished = false;
     private final String folder = "test3/";
     private Loader loader;
@@ -40,8 +39,6 @@ public class DocSpout implements IRichSpout {
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         this.collector = collector;
-        this.sentinel = Sentinel.getInstance();
-        sentinel.setWorking(true);
         this.fileNames = new LinkedBlockingQueue<>();
         this.loader = new Loader(folder, fileNames);
         loader.start();
