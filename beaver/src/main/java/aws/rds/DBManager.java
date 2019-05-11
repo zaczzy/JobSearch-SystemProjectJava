@@ -32,7 +32,7 @@ public class DBManager {
      *  Configure Instance
      */
     private DBManager() {
-        workerPool = new DBWorker[16];
+        workerPool = new DBWorker[128];
         for (int i = 0; i < workerPool.length; i ++) {
             workerPool[i] = new DBWorker();
         }
@@ -127,6 +127,7 @@ public class DBManager {
         @Override
         public void run() {
             Base.open(Credentials.jdbcDriver, Credentials.dbUrl, Credentials.dbUser, Credentials.dbUserPW);
+            long i = 0;
             while (started) {
                 Commit commit = commitQueue.poll();
                 if (commit != null) {
@@ -142,6 +143,10 @@ public class DBManager {
                                 "hits", commit.hits,
                                 "tf", commit.tf,
                                 "pagerank", commit.pagerank);
+                        i++;
+                        if (i % 4096 == 0) {
+                            System.out.println("[🐳 DB Thread: ] Thread " + Thread.currentThread() + " emitted 4k entries");
+                        }
                     } catch (DBException e) {
                         System.err.println("[ ❌ Error ] " + e.getMessage());
                         System.err.println("[ 🧨 Cause ] #" + commit.word + "# with " + commit.hits);
