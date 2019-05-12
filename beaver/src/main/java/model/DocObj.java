@@ -7,12 +7,12 @@ import java.util.Map;
 import java.util.Set;
 
 public class DocObj {
-    int id;
+    String id;
 
     Map<String, List<Integer>> positions = new HashMap<>();
     Map<String, Integer> freqs = new HashMap<>();
 
-    public DocObj(int id) {
+    public DocObj(String id) {
         this.id = id;
     }
 
@@ -44,5 +44,14 @@ public class DocObj {
         } else {
             return 0;
         }
+    }
+
+    public float L2Norm() {
+        int sum_square = 0;
+        for(Map.Entry<String, Integer> entry : freqs.entrySet()) {
+            sum_square += Math.pow(entry.getValue(), 2);
+        }
+        double norm = Math.sqrt(sum_square);
+        return (float) norm;
     }
 }

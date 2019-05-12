@@ -1,6 +1,10 @@
 package bolt;
 
+import aws.rds.DBBulkManager;
 import model.DocObj;
+import model.Sentinel;
+import model.Word;
+import model.WordEntry;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichBolt;
@@ -9,10 +13,7 @@ import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.List;
+import java.util.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,10 +27,11 @@ import org.apache.storm.tuple.Values;
  * Output: ("word", "Id", "hits", "tf")
  */
 public class WordGroupingBolt implements IRichBolt {
-    Logger logger = LogManager.getLogger(WordGroupingBolt.class);
     private OutputCollector collector;
 
-    private Map<Integer, DocObj> documents = new HashMap<Integer, DocObj>();
+    private Map<String, DocObj> documents = new HashMap<String, DocObj>();
+
+    private final Boolean SHOULD_BULK_INSERT_FLAG  = true;
 
     public WordGroupingBolt() {
 
@@ -43,19 +45,38 @@ public class WordGroupingBolt implements IRichBolt {
     @Override
     public void execute(Tuple input) {
         int weight = input.getIntegerByField("weight");
-        int id = input.getIntegerByField("Id");
+        String id = input.getStringByField("Id");
+        int pagerank = input.getIntegerByField("pagerank");
         DocObj doc = documents.get(id);
         if(weight < 0) {
             //EOS received
             if(doc == null) {
-                logger.error("EOS for non-existent document");
+                System.err.println("EOS for non-existent document");
             } else {
                 Set<String> words = doc.getAllWords();
-                for(String word : words) {
-                    List<Integer> list = doc.getPositions(word);
-                    int tf = doc.getFreq(word);
-                    collector.emit(new Values(word, id, list, tf));
+                if (SHOULD_BULK_INSERT_FLAG) {
+                    List<WordEntry> entries = new ArrayList<>();
+                    for (String word : words) {
+                        // prepare data
+                        int tf = doc.getFreq(word);
+                        float norm = doc.L2Norm();
+                        float wtf = tf / norm;
+                        List<Integer> list = doc.getPositions(word);
+                        // add entry
+                        WordEntry entry = new WordEntry(word, id, list.toString(), tf, pagerank, wtf, norm);
+                        entries.add(entry);
+                    }
+                    DBBulkManager.getInstance().bulkInsert(entries);
+                } else {
+                    for (String word : words) {
+                        List<Integer> list = doc.getPositions(word);
+                        int tf = doc.getFreq(word);
+                        float norm = doc.L2Norm();
+                        float wtf = tf / norm;
+                        collector.emit(new Values(word, id, list, tf, pagerank, norm, wtf));
+                    }
                 }
+                System.out.println("[ ✅ FINSIHED " + id + " ]: finished sending to sender bolt for " + id);
             }
         } else {
             if(doc == null) {
@@ -73,7 +94,7 @@ public class WordGroupingBolt implements IRichBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("word", "Id", "hits", "tf"));
+        declarer.declare(new Fields("word", "Id", "hits", "tf", "pagerank", "norm", "wtf"));
     }
 
     @Override
