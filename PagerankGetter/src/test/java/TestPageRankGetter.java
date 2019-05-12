@@ -9,6 +9,5 @@ public class TestPageRankGetter {
 
     @Test
     public void testAll() throws InterruptedException {
-        PageRankGetter.getAll();
     }
 }
