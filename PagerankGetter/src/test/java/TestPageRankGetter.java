@@ -1,4 +1,4 @@
-import dynamodb.PageRankGetter;
+import aws.dynamodb.PageRankGetter;
 import org.junit.Test;
 
 public class TestPageRankGetter {
