@@ -2,7 +2,7 @@ import {Actions, ResultType} from "../Constants"
 
 const defaultState = {
   WEB_RESULT_TYPE : ResultType.NONE_TYPE,
-  WEB_RESULT_DATA: {}
+  WEB_RESULT_DATA: []
 }
 
 const WebResultReducer = (state = defaultState, action) => {
@@ -11,7 +11,7 @@ const WebResultReducer = (state = defaultState, action) => {
       return {
         ...state,
         WEB_RESULT_TYPE : ResultType.NONE_TYPE,
-        WEB_RESULT_DATA : {}
+        WEB_RESULT_DATA : []
       }
     case Actions.SET_WEB_RESULT:
       return {
