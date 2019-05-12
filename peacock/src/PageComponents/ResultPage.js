@@ -6,9 +6,7 @@ import WebResultsPanel from './../Components/WebResultsPanel'
 import styled from 'styled-components'
 import queryString from 'query-string'
 import { connect } from 'react-redux';
-import { startSearch, setResults } from '../Redux/Actions'
-
-import ResultsData from './../FakeData/FakeResults'
+import { setResults } from '../Redux/Actions'
 
 const Wrapper = styled.div`
   display: flex;
@@ -17,11 +15,16 @@ class ResultPage extends Component {
 
   componentDidMount() {
     const values = queryString.parse(this.props.location.search)
-    console.log(values.query)
-    this.props.dispatch(startSearch())
-    const shuffled = ResultsData.sort(() => 0.5 - Math.random());
-    let selected = shuffled.slice(0, 15);
-    setTimeout(function(props){ props.dispatch(setResults(selected)); }, 300, this.props);
+    if (this.props.webResultData.length === 0) {
+      fetch('http://localhost:8089/real?query=' + values.query)
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(json) {
+        this.props.dispatch(setResults(json));
+      }.bind(this));
+      
+    }
   }
 
   render() {
@@ -37,4 +40,8 @@ class ResultPage extends Component {
   }
 }
 
-export default connect()(ResultPage)
+const mapStateToProps = state => ({
+  webResultData: state.web.WEB_RESULT_DATA
+})
+
+export default connect(mapStateToProps)(ResultPage)
