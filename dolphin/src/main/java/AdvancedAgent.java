@@ -1,6 +1,8 @@
 import aws.rds.Credentials;
 import aws.rds.Keyword;
 import aws.s3.S3Service;
+import cache.CacheService;
+import cache.WordQryResult;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.chimbori.crux.articles.Article;
@@ -170,11 +172,7 @@ public class AdvancedAgent {
     }
 
     /**
-     * Preprocess
-     */
-
-    /**
-     * DBFetcher
+     * DBFetcher with Cache
      */
     private class DBFetcherTask extends Thread {
         String word; CountDownLatch latch;
@@ -183,17 +181,59 @@ public class AdvancedAgent {
         }
         @Override
         public void run() {
+            if (CacheService.getInstance().readKWDCache(word) != null) {
+                //Read from cache
+                List<WordQryResult> cacheRets = CacheService.getInstance().readKWDCache(word);
+                for (WordQryResult ret : cacheRets) {
+                    String docId = ret.getDocId();
+                    String url = ret.getUrl();
+                    double pageRank = ret.getPageRank();
+                    double wtf = ret.getWtf();
+                    List<Integer> hits = ret.getHits();
+                    docToUrl.put(docId, url);
+                    /* Page Rank */
+                    docPageRankScores.putIfAbsent(docId, pageRank);
+                    /* Position List */
+                    synchronized (docToPosList) {
+                        if (docToPosList.containsKey(docId)) {
+                            List<List<Integer>> poses = docToPosList.get(docId);
+                            poses.add(hits);
+                            docToPosList.put(docId, poses);
+                        } else {
+                            List<List<Integer>> list = new ArrayList<>();
+                            list.add(hits);
+                            docToPosList.put(docId, list);
+                        }
+                    }
+                    /* Cosine Similarity */
+                    docCosineSimScores.put(docId, docCosineSimScores.getOrDefault(docId, 0.0) + wtf * queryWordToWtf.get(word));
+                    /* Document Hash Set */
+                    synchronized (queryWordToDocuments) {
+                        if (queryWordToDocuments.containsKey(word)) {
+                            HashSet<String> docs = queryWordToDocuments.get(word);
+                            docs.add(docId);
+                            queryWordToDocuments.put(word, docs);
+                        } else {
+                            HashSet<String> docs = new HashSet<>();
+                            docs.add(docId);
+                            queryWordToDocuments.put(word, docs);
+                        }
+                    }
+                }
+            }
             DB db = new DB("default");
             db.open(Credentials.jdbcDriver, Credentials.dbUrl, Credentials.dbUser, Credentials.dbUserPW);
             List<Keyword> keywords = Keyword.findBySQL("SELECT * FROM keywords WHERE word='" + word +"'");
             queryWordToIdf.put(word, getIDF(keywords));
             queryWordToWtf.put(word, queryWordToWtf.get(word) * queryWordToIdf.get(word));
+            List<WordQryResult> toCache = new ArrayList<>();
             keywords.stream().forEach((entry) -> {
                 String docId = entry.getString("docid");
                 String url = entry.getString("url");
                 double pageRank = entry.getDouble("pagerank");
                 double wtf = entry.getDouble("wtf");
                 List<Integer> hits = convertStringToHitList(entry.getString("hits"));
+                toCache.add(new WordQryResult(docId, url, pageRank, wtf, hits));
                 /* URL */
                 docToUrl.put(docId, url);
                 /* Page Rank */
@@ -225,6 +265,7 @@ public class AdvancedAgent {
                     }
                 }
             });
+            CacheService.getInstance().writeKWDCache(word, toCache);
             db.close();
             System.out.println(word + ":" + getIDF(keywords));
             latch.countDown();
