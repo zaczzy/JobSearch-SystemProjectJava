@@ -185,7 +185,7 @@ public class AdvancedAgent {
         public void run() {
             DB db = new DB("default");
             db.open(Credentials.jdbcDriver, Credentials.dbUrl, Credentials.dbUser, Credentials.dbUserPW);
-            List<Keyword> keywords = Keyword.findBySQL("SELECT * FROM keywords WHERE word='" + word +"'");
+            List<Keyword> keywords = Keyword.findBySQL("SELECT * FROM keywords WHERE word='" + word +"' ORDER BY wtf LIMIT 3000");
             queryWordToIdf.put(word, getIDF(keywords));
             queryWordToWtf.put(word, queryWordToWtf.get(word) * queryWordToIdf.get(word));
             keywords.stream().forEach((entry) -> {
@@ -270,11 +270,11 @@ public class AdvancedAgent {
     private double getIDF(List<Keyword> keywords) {
         double total = 700000; double count = 0;
         if (keywords.size()  < 1) { return 0.01; }
-        if (keywords.size() < 1000)  { count = keywords.size(); }
+        if (keywords.size() < 3000)  { count = keywords.size(); }
         else {
             Double last = 1 + keywords.get(keywords.size() - 1).getDouble("pagerank");
             int multiplier = Long.valueOf(Math.round(last)).intValue();
-            count = 2000 * multiplier;
+            count = 3000 * multiplier;
         }
         return Math.log(total / count);
     }
