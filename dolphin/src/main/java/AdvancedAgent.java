@@ -46,7 +46,7 @@ public class AdvancedAgent {
         this.positions = new ConcurrentHashMap<>();
         this.results = new ConcurrentHashMap<>();
         this.finalRanking = new ArrayList<>();
-        this.ranks = new PriorityQueue<DocumentRank>(30, new Comparator<DocumentRank>() {
+        this.ranks = new PriorityQueue<DocumentRank>(50, new Comparator<DocumentRank>() {
             @Override
             public int compare(DocumentRank o1, DocumentRank o2) {
                 return (o2.score - o1.score) >= 0 ? 1 : -1;
@@ -62,7 +62,7 @@ public class AdvancedAgent {
         System.out.println("Before populatePriorityQueue() : +" + (System.currentTimeMillis() - start));
         populatePriorityQueue(finalists);
         System.out.println("Before populateResults() : +" + (System.currentTimeMillis() - start));
-        for (int i = 0; i < 30; i++)  {
+        for (int i = 0; i < 50; i++)  {
             DocumentRank rank = ranks.poll();
             if (rank == null) { break; }
             finalRanking.add(rank.docId);
@@ -106,16 +106,29 @@ public class AdvancedAgent {
     }
 
     public void populatePriorityQueue(List<String> documents) {
+        HashSet<String> strippedUrls = new HashSet<>();
         for (String id : documents) {
+            String first = docToUrl.get(id).split("#")[0];
+            if (strippedUrls.contains(first)) { continue; }
+            strippedUrls.add(first);
             Double cosineScore = docCosineSimScores.get(id);
             Double pageRankScore = docPageRankScores.get(id);
             int[] pairs = ClosestPair.findClosestIndices(docToPosList.get(id));
-            int closeness = pairs[0];
+            double closeness = pairs[0];
             /* TODO: add closeness to the metrix */
-            Double score = cosineScore * 8 + Math.log(2 + pageRankScore) * 2;
+            Double score;
+            if (closeness > 0) {
+                score = cosineScore * 8 + sigmoid(2 + pageRankScore) * 2 + 2 * (5.0 / closeness);
+            } else {
+                score = cosineScore * 8 + sigmoid(2 + pageRankScore) * 2;
+            }
             DocumentRank rank = new DocumentRank(id, score);
             ranks.add(rank);
         }
+    }
+
+    private double sigmoid(double x) {
+        return (1/( 1 + Math.pow(Math.E,(-1*x))));
     }
 
     public void populateResults() {
@@ -240,7 +253,6 @@ public class AdvancedAgent {
                 article = ArticleExtractor.with("", doc).extractMetadata().extractContent().article();
             } catch (Exception e) {
                 System.err.println(docId);
-                e.printStackTrace();
             }
             if (article == null) {
                 System.err.println("[❌ERROR:] Article is NULL !!!");
