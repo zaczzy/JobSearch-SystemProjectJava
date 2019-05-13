@@ -22,6 +22,7 @@ public class APIServer {
     public static void main(String[] args) {
         APIServer server = new APIServer();
         port(8083);
+        CorsFilter.apply();
 //        http://localhost:8080/?query=something
         get("/", (req, res) -> {
             String query = req.queryParams("q");
@@ -71,7 +72,7 @@ public class APIServer {
     public static boolean isSubsequence(String[] full, String[] target) {
         int f = 0, t = 0;
         while (f < full.length) {
-            while (f < full.length && !full[f].equals(target[t])) {
+            while (f < full.length && !full[f].startsWith(target[t])) {
             f += 1;
         }
             if (f == full.length) return false;
@@ -150,22 +151,26 @@ public class APIServer {
             encoding = encoding == null ? "UTF-8" : encoding;
             String body = IOUtils.toString(in, encoding);
             JSONObject jo = new JSONObject(body);
+            JSONObject data = new JSONObject();
             JSONObject ret = new JSONObject();
-            ret.put("service", true);
-            ret.put("service_type", "weather");
+
+            data.put("service", true);
+            data.put("service_type", "weather");
+            data.put("data", ret);
             ret.put("city", jo.getString("name"));
             ret.put("dt", formatTime(jo.getLong("dt")));
             JSONObject firstWeather = jo.getJSONArray("weather").getJSONObject(0);
             ret.put("weather", firstWeather.getString("main"));
-            ret.put("icon_id", firstWeather.getString("icon"));
+            ret.put("icon_id", firstWeather.getInt("id"));
             JSONObject mainTemps = jo.getJSONObject("main");
 
             ret.put("temp_min", mainTemps.getDouble("temp_min"));
             ret.put("temp_max", mainTemps.getDouble("temp_max"));
+            ret.put("temp", mainTemps.getDouble("temp"));
             ret.put("humidity", mainTemps.getInt("humidity"));
             ret.put("wind_kmh", jo.getJSONObject("wind").getDouble("speed") * 3.6);
             ret.put("wind_mph", jo.getJSONObject("wind").getDouble("speed") * 2.23694);
-            return ret.toString();
+            return data.toString();
         } catch (FileNotFoundException e) {
             return null;
         } catch (IOException e) {

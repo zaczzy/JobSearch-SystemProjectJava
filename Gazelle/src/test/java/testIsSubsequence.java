@@ -1,6 +1,6 @@
 package test.java;
 
-import main.APIServer;
+import main.java.APIServer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;

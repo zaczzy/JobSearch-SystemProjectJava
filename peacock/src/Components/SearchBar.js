@@ -7,9 +7,6 @@ import { startSearch, setResults, startWebSearch, setWebResults } from '../Redux
 import { push } from 'connected-react-router'
 import { ResultType } from './../Redux/Constants'
 
-import ShoppingData from './../FakeData/FakeShopping'
-import WeatherData from './../FakeData/FakeWeather'
-
 const Search = Input.Search;
 
 const AutoCompleteWrapper = styled(AutoComplete)`
@@ -31,13 +28,23 @@ class SearchBar extends Component {
   }
 
   handleSearch = (value) => {
-    this.setState({
-      dataSource: !value ? [] : [
-        value,
-        value + value,
-        value + value + value,
-      ],
-    });
+    if (value === null || value === "") {
+      this.setState({dataSource: []});
+      return;
+    }
+    fetch('http://localhost:8083/h/' + value)
+      .then(function(res) {
+        try {
+          let result = res.json();
+          return result;
+        } catch (e) {
+          console.log(e);
+          return [];
+        }
+      })
+      .then(function(json) {
+        this.setState({dataSource: json});
+      }.bind(this))
   }
 
   search = (value) => {
@@ -45,7 +52,7 @@ class SearchBar extends Component {
     this.props.dispatch(startSearch())
     this.props.dispatch(startWebSearch())
     /* Query Dolphin Engine */
-    fetch('http://localhost:8089/real?query=' + value)
+    fetch('http://localhost:8085/real?query=' + value)
       .then(function(response) {
         return response.json();
       })
@@ -53,20 +60,41 @@ class SearchBar extends Component {
         this.props.dispatch(setResults(json));
       }.bind(this));
       
-    /* TODO: Should replace these with corresponding backend */
-    if (value.includes("weather")) {
-      setTimeout(function(props){ 
-        props.dispatch(setWebResults(ResultType.WEATHER_TYPE, WeatherData)); 
-      }, 300, this.props);
-    } else if (value.includes("shop")) {
-      setTimeout(function(props){ 
-        props.dispatch(setWebResults(ResultType.SHOPPING_TYPE, ShoppingData)); 
-      }, 300, this.props);
-    } else {
-      setTimeout(function(props){ 
-        props.dispatch(setWebResults(ResultType.NONE_TYPE, {})); 
-      }, 300, this.props);
-    }
+    fetch('http://localhost:8083/h/' + value, {method: 'POST'})
+      .then(function(response) {
+        return response.json();
+
+      })
+      .then(function(json) {
+        console.log(json)
+      })
+
+    fetch('http://localhost:8083/?q=' + value)
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(json) {
+        if (json.service_type === "weather") {
+          console.log(json)
+          this.props.dispatch(setWebResults(ResultType.WEATHER_TYPE, json.data)); 
+        } else if (json.service_type === "walmart") {
+          this.props.dispatch(setWebResults(ResultType.SHOPPING_TYPE, json.data)); 
+        }
+      }.bind(this));
+    // /* TODO: Should replace these with corresponding backend */
+    // if (value.includes("weather")) {
+    //   setTimeout(function(props){ 
+    //     props.dispatch(setWebResults(ResultType.WEATHER_TYPE, WeatherData)); 
+    //   }, 300, this.props);
+    // } else if (value.includes("shop")) {
+    //   setTimeout(function(props){ 
+    //     props.dispatch(setWebResults(ResultType.SHOPPING_TYPE, ShoppingData)); 
+    //   }, 300, this.props);
+    // } else {
+    //   setTimeout(function(props){ 
+    //     props.dispatch(setWebResults(ResultType.NONE_TYPE, {})); 
+    //   }, 300, this.props);
+    // }
   }
 
   render() {
