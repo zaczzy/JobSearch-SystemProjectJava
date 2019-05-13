@@ -32,14 +32,15 @@ class SearchBar extends Component {
       this.setState({dataSource: []});
       return;
     }
-    fetch('http://localhost:8083/h/' + value)
-      .then(function(res) {
-        try {
-          let result = res.json();
-          return result;
-        } catch (e) {
-          console.log(e);
-          return [];
+    fetch('http://104.248.224.168:8080/h/' + value)
+      .then(response => {
+        return response.text()
+      })
+      .then((data) => {
+        if (data || data.length < 3) {
+          return JSON.parse(data)
+        } else {
+          return []
         }
       })
       .then(function(json) {
@@ -52,7 +53,7 @@ class SearchBar extends Component {
     this.props.dispatch(startSearch())
     this.props.dispatch(startWebSearch())
     /* Query Dolphin Engine */
-    fetch('http://localhost:8085/real?query=' + value)
+    fetch('http://138.197.225.126/advanced?query=' + value)
       .then(function(response) {
         return response.json();
       })
@@ -60,16 +61,9 @@ class SearchBar extends Component {
         this.props.dispatch(setResults(json));
       }.bind(this));
       
-    fetch('http://localhost:8083/h/' + value, {method: 'POST'})
-      .then(function(response) {
-        return response.json();
+    fetch('http://104.248.224.168:8080/h/' + value, {method: 'POST'})
 
-      })
-      .then(function(json) {
-        console.log(json)
-      })
-
-    fetch('http://localhost:8083/?q=' + value)
+    fetch('http://104.248.224.168:8080/?q=' + value)
       .then(function(response) {
         return response.json();
       })
