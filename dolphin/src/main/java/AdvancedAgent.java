@@ -52,22 +52,23 @@ public class AdvancedAgent {
                 return (o2.score - o1.score) >= 0 ? 1 : -1;
             }
         });
+        long start = System.currentTimeMillis();
+        System.out.println("Start Query ");
         populateQueryWtf(rawQuery);
+        System.out.println("Before FetchAndUpdate(): +" + (System.currentTimeMillis() - start));
         fetchAndUpdate();
+        System.out.println("Before mergeSets(): +" + (System.currentTimeMillis() - start));
         List<String> finalists = mergeSets();
-        for (String s : finalists) {
-            System.out.println(docToUrl.get(s));
-        }
+        System.out.println("Before populatePriorityQueue() : +" + (System.currentTimeMillis() - start));
         populatePriorityQueue(finalists);
-        for (int i = 0; i < 20; i++)  {
-            if (ranks == null) {
-                System.out.println("🛑 WTF???");
-            }
+        System.out.println("Before populateResults() : +" + (System.currentTimeMillis() - start));
+        for (int i = 0; i < 30; i++)  {
             DocumentRank rank = ranks.poll();
             if (rank == null) { break; }
             finalRanking.add(rank.docId);
         }
         populateResults();
+        System.out.print("Finish : +" + (System.currentTimeMillis() - start));
     }
 
     /**
@@ -90,20 +91,15 @@ public class AdvancedAgent {
         for (Map.Entry<String, Double> entry : record.entrySet()) {
             queryWordToWtf.put(entry.getKey(), entry.getValue() / euclideanSum);
         }
-        System.out.println("👼 Query WTF: " + queryWordToWtf.toString());
     }
 
     private void fetchAndUpdate() {
-//        ExecutorService fetcherPool = Executors.newFixedThreadPool(queryWordToWtf.size());
         CountDownLatch latch = new CountDownLatch(queryWordToWtf.size());
-        System.out.println("latch!" + latch.toString());
         for (Map.Entry<String, Double> entry : queryWordToWtf.entrySet()) {
             new DBFetcherTask(entry.getKey(), latch).start();
         }
         try {
             latch.await();
-            System.out.println(queryWordToIdf.toString());
-            System.out.println(docPageRankScores.size());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -113,14 +109,9 @@ public class AdvancedAgent {
         for (String id : documents) {
             Double cosineScore = docCosineSimScores.get(id);
             Double pageRankScore = docPageRankScores.get(id);
-//            int[] pairs = ClosestPair.findClosestIndices(docToPosList.get(id));
-//            if (pairs == null) {
-//                System.out.println("[❌] Closest pair not found");
-//                continue;
-//            }
-//            int closeness = pairs[0];
-//            this.positions.put(id, pairs);
-            System.out.println(id + ": " + "cosine = " + cosineScore + ", pageRank = " + pageRankScore + ", url=" + docToUrl.get(id));
+            int[] pairs = ClosestPair.findClosestIndices(docToPosList.get(id));
+            int closeness = pairs[0];
+            /* TODO: add closeness to the metrix */
             Double score = cosineScore * 8 + Math.log(2 + pageRankScore) * 2;
             DocumentRank rank = new DocumentRank(id, score);
             ranks.add(rank);
@@ -157,7 +148,9 @@ public class AdvancedAgent {
     public List<SearchResult> getResults() {
         List<SearchResult> sr = new ArrayList<>();
         for (String id : finalRanking) {
-            sr.add(results.get(id));
+            if (results.get(id) != null) {
+                sr.add(results.get(id));
+            }
         }
         return sr;
     }
@@ -185,7 +178,7 @@ public class AdvancedAgent {
         public void run() {
             DB db = new DB("default");
             db.open(Credentials.jdbcDriver, Credentials.dbUrl, Credentials.dbUser, Credentials.dbUserPW);
-            List<Keyword> keywords = Keyword.findBySQL("SELECT * FROM keywords WHERE word='" + word +"' ORDER BY wtf LIMIT 3000");
+            List<Keyword> keywords = Keyword.findBySQL("SELECT * FROM keywords WHERE word='" + word +"' ORDER BY wtf LIMIT 1500");
             queryWordToIdf.put(word, getIDF(keywords));
             queryWordToWtf.put(word, queryWordToWtf.get(word) * queryWordToIdf.get(word));
             keywords.stream().forEach((entry) -> {
@@ -226,7 +219,6 @@ public class AdvancedAgent {
                 }
             });
             db.close();
-            System.out.println(word + ":" + getIDF(keywords));
             latch.countDown();
         }
     }
