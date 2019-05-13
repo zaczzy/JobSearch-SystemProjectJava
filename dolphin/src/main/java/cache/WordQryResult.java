@@ -1,8 +1,9 @@
 package cache;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class WordQryResult {
+public class WordQryResult implements Serializable {
   String docId;
   String url;
   double pageRank ;

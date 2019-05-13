@@ -22,11 +22,15 @@ public class CacheService {
   private final String keywordCacheFile = "./cache/keyword/keywordCache.txt";
   private final String queryCacheFile = "./cache/query/queryCache.txt";
 
-
-
   private CacheService() {
     queryJSONMap = loadQueryMap();
     queryWordMap = loadKWDMap();
+    File cacheDir = new File("./cache");
+    cacheDir.mkdir();
+    File kwdDir = new File("./cache/keyword");
+    kwdDir.mkdir();
+    File queryDir = new File("./cache/query");
+    queryDir.mkdir();
   }
 
   private static CacheService instance;
