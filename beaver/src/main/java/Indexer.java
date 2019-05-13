@@ -1,5 +1,6 @@
 import aws.rds.DBBulkManager;
 import aws.rds.DBManager;
+import aws.s3.S3Service;
 import bolt.*;
 import model.Sentinel;
 import org.apache.logging.log4j.core.config.Configurator;
@@ -26,6 +27,13 @@ public class Indexer {
     public static void main(String args[]) {
         Configurator.setLevel("", Level.WARN);
 
+        if(args.length != 1) {
+            System.err.println("Incorrect number of arguments to Indexer.");
+            System.exit(1);
+        }
+
+        String folder = args[0];
+
         TopologyBuilder builder = new TopologyBuilder();
 
         builder.setSpout("spout", new DocSpout(), 1);
@@ -40,6 +48,7 @@ public class Indexer {
         conf.setDebug(true);
         /* set up parallelism */
         conf.setNumWorkers(1);
+        conf.put("folder", folder);
 
         /* Start DB Connection Pool */
         DBBulkManager.getInstance().start();
