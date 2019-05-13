@@ -94,11 +94,11 @@ public class AdvancedAgent {
     }
 
     private void fetchAndUpdate() {
-        ExecutorService fetcherPool = Executors.newFixedThreadPool(queryWordToWtf.size());
+//        ExecutorService fetcherPool = Executors.newFixedThreadPool(queryWordToWtf.size());
         CountDownLatch latch = new CountDownLatch(queryWordToWtf.size());
         System.out.println("latch!" + latch.toString());
         for (Map.Entry<String, Double> entry : queryWordToWtf.entrySet()) {
-            fetcherPool.submit(new DBFetcherTask(entry.getKey(), latch));
+            new DBFetcherTask(entry.getKey(), latch).start();
         }
         try {
             latch.await();
@@ -176,12 +176,15 @@ public class AdvancedAgent {
     /**
      * DBFetcher
      */
-    private class DBFetcherTask implements Runnable {
+    private class DBFetcherTask extends Thread {
         String word; CountDownLatch latch;
-        public DBFetcherTask(String word, CountDownLatch latch) { this.word = word; this.latch = latch; }
+        public DBFetcherTask(String word, CountDownLatch latch) {
+            this.word = word; this.latch = latch;
+        }
         @Override
         public void run() {
-            DB db = new DB("keywords").open(Credentials.jdbcDriver, Credentials.dbUrl, Credentials.dbUser, Credentials.dbUserPW);
+            DB db = new DB("default");
+            db.open(Credentials.jdbcDriver, Credentials.dbUrl, Credentials.dbUser, Credentials.dbUserPW);
             List<Keyword> keywords = Keyword.findBySQL("SELECT * FROM keywords WHERE word='" + word +"'");
             queryWordToIdf.put(word, getIDF(keywords));
             queryWordToWtf.put(word, queryWordToWtf.get(word) * queryWordToIdf.get(word));
@@ -245,6 +248,7 @@ public class AdvancedAgent {
             }
             if (article == null) {
                 System.err.println("[❌ERROR:] Article is NULL !!!");
+                latch.countDown();
             }
             String title = article.title;
             String url = docToUrl.get(docId);
