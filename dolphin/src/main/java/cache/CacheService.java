@@ -19,8 +19,8 @@ public class CacheService {
 
   private static Map<String, String> queryJSONMap;
 
-  private final String keywordCacheFile = "./cache/keyword/keywordCache.txt";
-  private final String queryCacheFile = "./cache/query/queryCache.txt";
+  private final String keywordCacheDir = "./cache/keyword/";
+  private final String queryCacheDir = "./cache/query/";
 
   private CacheService() {
     queryJSONMap = loadQueryMap();
@@ -45,7 +45,7 @@ public class CacheService {
   public void writeKWDCache(String keyword, List<WordQryResult> qryResultList) {
     queryWordMap.put(keyword, qryResultList);
     try {
-      saveString(keywordCacheFile, JSON.toJSONString(queryWordMap));
+      saveString(keywordCacheDir + keyword, JSON.toJSONString(qryResultList));
     } catch (Exception ignored) {
     }
   }
@@ -58,7 +58,7 @@ public class CacheService {
   public void writeQueryCache(String query, String queryJSON) {
     queryJSONMap.put(query, queryJSON);
     try {
-      saveString(queryCacheFile, JSON.toJSONString(queryJSONMap));
+      saveString(queryCacheDir + query, queryJSON);
     } catch (Exception ignored) {
     }
   }
@@ -69,13 +69,12 @@ public class CacheService {
 
   private Map<String, List<WordQryResult>> loadKWDMap() {
     try {
-      String mapJson = loadString(keywordCacheFile);
-      JSONObject jsonObject = JSONObject.parseObject(mapJson);
-      Map<String, Object> map = (Map<String, Object>) jsonObject;
-      if (map == null) { map = new HashMap<>(); }
       Map<String, List<WordQryResult>> result = new HashMap<>();
-      for (Map.Entry<String, Object> entry : map.entrySet()) {
-        result.put(entry.getKey(), convertStringToWordQryResultList(String.valueOf(entry.getValue())));
+      File folder = new File(keywordCacheDir);
+      File[] listOfFiles = folder.listFiles();
+      if (listOfFiles == null) return result;
+      for (File file : listOfFiles) {
+        result.put(file.getName(), convertStringToWordQryResultList(loadString(file.getName())));
       }
       return result;
     } catch (Exception e) {
@@ -86,24 +85,23 @@ public class CacheService {
 
   private Map<String, String> loadQueryMap() {
     try {
-      String mapJson = loadString(queryCacheFile);
-      JSONObject jsonObject = JSONObject.parseObject(mapJson);
-      Map<String, Object> map = (Map<String, Object>) jsonObject;
-      if (map == null) { map = new HashMap<>(); }
       Map<String, String> result = new HashMap<>();
-      for (Map.Entry<String, Object> entry : map.entrySet()) {
-        result.put(entry.getKey(), String.valueOf(entry.getValue()));
+      File folder = new File(queryCacheDir);
+      File[] listOfFiles = folder.listFiles();
+      if (listOfFiles == null) return result;
+      for (File file : listOfFiles) {
+        result.put(file.getName(), loadString(file.getName()));
       }
       return result;
     } catch (Exception e) {
-      e.printStackTrace();
-      return null;
+      return new HashMap<>();
     }
   }
 
   private void saveString(String fileName, String data) throws Exception {
     BufferedWriter out = new BufferedWriter(new FileWriter(fileName));
     out.write(data);
+    out.close();
   }
 
   private String loadString(String fileName) throws Exception {
