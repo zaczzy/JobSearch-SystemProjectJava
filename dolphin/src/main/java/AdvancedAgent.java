@@ -10,6 +10,7 @@ import org.javalite.activejdbc.DB;
 import org.javalite.activejdbc.ModelListener;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -246,33 +247,77 @@ public class AdvancedAgent {
         @Override
         public void run() {
             Article article = null;
+            String posContent = null;
             try {
                 String url = docId + ".html";
                 String content = S3Service.getInstance().getFileAsString(url);
+                posContent = getContentString(content);
                 Document doc = Jsoup.parse(content);
                 article = ArticleExtractor.with("", doc).extractMetadata().extractContent().article();
             } catch (Exception e) {
                 System.err.println(docId);
             }
-            if (article == null) {
+            if (article == null || posContent == null) {
                 System.err.println("[❌ERROR:] Article is NULL !!!");
                 latch.countDown();
+            } else {
+                String title = article.title;
+                String url = docToUrl.get(docId);
+                String excerpt = getExerptFor(posContent, docId);
+                results.put(docId, new SearchResult(title, url, excerpt));
+                latch.countDown();
             }
-            String title = article.title;
-            String url = docToUrl.get(docId);
-            String excerpt = getExerptFor(article);
-            results.put(docId, new SearchResult(title, url, excerpt));
-            latch.countDown();
         }
     }
 
-    private String getExerptFor(Article article) {
-        String mainContent = article.description + article.document.text();
-        if (mainContent.length() < 500) {
-            return mainContent;
+    private String getExerptFor(String content, String docId) {
+        int[] pair = positions.get(docId);
+        if (pair == null || pair[0] > content.length()) {
+            if (content.length() < 500) {
+                return content;
+            } else {
+                return content.substring(0, 500);
+            }
         } else {
-            return mainContent.substring(0, 500);
+            content = content.substring(pair[0], content.length());
+            if (content.length() < 500) {
+                return content;
+            } else {
+                return content.substring(0, 500);
+            }
         }
+    }
+
+    private String getContentString(String content) {
+        Document doc = Jsoup.parse(content);
+
+        // Parse with Crux
+        Article article = ArticleExtractor.with("", doc).extractMetadata().extractContent().article();
+
+        // Eliminate irrelevant tags
+        doc.select("select").remove();
+        doc.select("script").remove();
+        doc.select("form").remove();
+
+        Document newdoc = article.document;
+        if (newdoc == null) {
+            System.err.println("Crux: NULL");
+            return "";
+        }
+
+        // Extract elements
+        String body = "";
+        if (newdoc.text().length() >= doc.body().text().length() / 5) {
+            doc = newdoc;
+            body = newdoc.text();
+        } else {
+            Element ele = doc.body();
+            if(ele != null) { body = ele.text(); }
+        }
+
+        String title = article.title;
+        String description = article.description;
+        return title + description + body;
     }
 
     private double getIDF(List<Keyword> keywords) {
