@@ -6,6 +6,7 @@ import com.alibaba.fastjson.TypeReference;
 import com.chimbori.crux.articles.Article;
 import com.chimbori.crux.articles.ArticleExtractor;
 import org.javalite.activejdbc.Base;
+import org.javalite.activejdbc.DB;
 import org.javalite.activejdbc.ModelListener;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -180,7 +181,7 @@ public class AdvancedAgent {
         public DBFetcherTask(String word, CountDownLatch latch) { this.word = word; this.latch = latch; }
         @Override
         public void run() {
-            Base.open(Credentials.jdbcDriver, Credentials.dbUrl, Credentials.dbUser, Credentials.dbUserPW);
+            DB db = new DB("keywords").open(Credentials.jdbcDriver, Credentials.dbUrl, Credentials.dbUser, Credentials.dbUserPW);
             List<Keyword> keywords = Keyword.findBySQL("SELECT * FROM keywords WHERE word='" + word +"'");
             queryWordToIdf.put(word, getIDF(keywords));
             queryWordToWtf.put(word, queryWordToWtf.get(word) * queryWordToIdf.get(word));
@@ -221,6 +222,7 @@ public class AdvancedAgent {
                     }
                 }
             });
+            db.close();
             System.out.println(word + ":" + getIDF(keywords));
             latch.countDown();
         }
