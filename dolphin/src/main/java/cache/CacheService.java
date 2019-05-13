@@ -36,7 +36,10 @@ public class CacheService {
   private static CacheService instance;
 
   public static CacheService getInstance() {
-    return instance == null ? new CacheService() : instance;
+    if (instance ==null) {
+      instance = new CacheService();
+    }
+    return instance;
   }
 
   public void writeKWDCache(String keyword, List<WordQryResult> qryResultList) {
@@ -69,6 +72,7 @@ public class CacheService {
       String mapJson = loadString(keywordCacheFile);
       JSONObject jsonObject = JSONObject.parseObject(mapJson);
       Map<String, Object> map = (Map<String, Object>) jsonObject;
+      if (map == null) { map = new HashMap<>(); }
       Map<String, List<WordQryResult>> result = new HashMap<>();
       for (Map.Entry<String, Object> entry : map.entrySet()) {
         result.put(entry.getKey(), convertStringToWordQryResultList(String.valueOf(entry.getValue())));
@@ -85,6 +89,7 @@ public class CacheService {
       String mapJson = loadString(queryCacheFile);
       JSONObject jsonObject = JSONObject.parseObject(mapJson);
       Map<String, Object> map = (Map<String, Object>) jsonObject;
+      if (map == null) { map = new HashMap<>(); }
       Map<String, String> result = new HashMap<>();
       for (Map.Entry<String, Object> entry : map.entrySet()) {
         result.put(entry.getKey(), String.valueOf(entry.getValue()));

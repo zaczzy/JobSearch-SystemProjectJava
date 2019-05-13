@@ -10,6 +10,8 @@ public class Main {
         port(8085);
         CorsFilter.apply();
 
+        CacheService.getInstance();
+
         /* Fake Results for testing Peacock Frontend*/
         get("fake", (req, res) -> {
             String query = req.queryParams("query");
@@ -32,37 +34,37 @@ public class Main {
             }
         });
 
-        /* Real Query Endpoint */
-        get("advanced", (req, res) -> {
-            String query = req.queryParams("query");
-            System.out.println("advanced" + query);
-            try {
-                res.type("application/json");
-                AdvancedAgent agent = new AdvancedAgent(query);
-                return JSON.toJSONString(agent.getResults());
-            } catch (Exception e) {
-                e.printStackTrace();
-                return "Fucked up";
-            }
-        });
-
-        //The following code is used with cache
+//        /* Real Query Endpoint */
 //        get("advanced", (req, res) -> {
 //            String query = req.queryParams("query");
-//            if (CacheService.getInstance().readQueryCache(query) != null) {
-//                return CacheService.getInstance().readQueryCache(query);
-//            }
 //            System.out.println("advanced" + query);
 //            try {
 //                res.type("application/json");
 //                AdvancedAgent agent = new AdvancedAgent(query);
-//                CacheService.getInstance().writeQueryCache(query, JSON.toJSONString(agent.getResults()));
 //                return JSON.toJSONString(agent.getResults());
 //            } catch (Exception e) {
 //                e.printStackTrace();
 //                return "Fucked up";
 //            }
 //        });
+
+        // The following code is used with cache
+        get("advanced", (req, res) -> {
+            String query = req.queryParams("query");
+            if (CacheService.getInstance().readQueryCache(query) != null) {
+                return CacheService.getInstance().readQueryCache(query);
+            }
+            System.out.println("advanced" + query);
+            try {
+                res.type("application/json");
+                AdvancedAgent agent = new AdvancedAgent(query);
+                CacheService.getInstance().writeQueryCache(query, JSON.toJSONString(agent.getResults()));
+                return JSON.toJSONString(agent.getResults());
+            } catch (Exception e) {
+                e.printStackTrace();
+                return "Fucked up";
+            }
+        });
 
 
 
