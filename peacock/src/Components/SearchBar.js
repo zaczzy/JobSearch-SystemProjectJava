@@ -75,20 +75,6 @@ class SearchBar extends Component {
           this.props.dispatch(setWebResults(ResultType.SHOPPING_TYPE, json.data)); 
         }
       }.bind(this));
-    // /* TODO: Should replace these with corresponding backend */
-    // if (value.includes("weather")) {
-    //   setTimeout(function(props){ 
-    //     props.dispatch(setWebResults(ResultType.WEATHER_TYPE, WeatherData)); 
-    //   }, 300, this.props);
-    // } else if (value.includes("shop")) {
-    //   setTimeout(function(props){ 
-    //     props.dispatch(setWebResults(ResultType.SHOPPING_TYPE, ShoppingData)); 
-    //   }, 300, this.props);
-    // } else {
-    //   setTimeout(function(props){ 
-    //     props.dispatch(setWebResults(ResultType.NONE_TYPE, {})); 
-    //   }, 300, this.props);
-    // }
   }
 
   render() {
