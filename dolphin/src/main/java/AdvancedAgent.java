@@ -120,7 +120,7 @@ public class AdvancedAgent {
 //            int closeness = pairs[0];
 //            this.positions.put(id, pairs);
             System.out.println(id + ": " + "cosine = " + cosineScore + ", pageRank = " + pageRankScore + ", url=" + docToUrl.get(id));
-            Double score = cosineScore * 7 + pageRankScore * 3;
+            Double score = cosineScore * 8 + Math.log(2 + pageRankScore) * 2;
             DocumentRank rank = new DocumentRank(id, score);
             ranks.add(rank);
         }
