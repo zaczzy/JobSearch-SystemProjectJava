@@ -52,6 +52,7 @@ public class Main {
         get("advanced", (req, res) -> {
             String query = req.queryParams("query");
             if (CacheService.getInstance().readQueryCache(query) != null) {
+                res.type("application/json");
                 return CacheService.getInstance().readQueryCache(query);
             }
             System.out.println("advanced" + query);
