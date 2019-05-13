@@ -1,6 +1,9 @@
 import cache.CacheService;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
+
+import java.util.List;
 
 import static spark.Spark.get;
 import static spark.Spark.port;
@@ -40,7 +43,11 @@ public class Main {
             String query = req.queryParams("query");
             if (CacheService.getInstance().readQueryCache(query) != null) {
                 res.type("application/json");
-                return CacheService.getInstance().readQueryCache(query);
+                JSONObject jobj = new JSONObject();
+                List<SearchResult> loadedResults = JSON.parseObject(CacheService.getInstance().readQueryCache(query), new TypeReference<List<SearchResult>>(){});
+                jobj.put("results", loadedResults);
+                jobj.put("total", 1000);
+                return jobj;
             }
             System.out.println("advanced" + query);
             try {

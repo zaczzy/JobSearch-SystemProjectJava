@@ -74,7 +74,7 @@ public class CacheService {
       File[] listOfFiles = folder.listFiles();
       if (listOfFiles == null) return result;
       for (File file : listOfFiles) {
-        result.put(file.getName(), convertStringToWordQryResultList(loadString(file.getName())));
+        result.put(file.getName(), convertStringToWordQryResultList(loadString(keywordCacheDir + file.getName())));
       }
       return result;
     } catch (Exception e) {
@@ -90,7 +90,7 @@ public class CacheService {
       File[] listOfFiles = folder.listFiles();
       if (listOfFiles == null) return result;
       for (File file : listOfFiles) {
-        result.put(file.getName(), loadString(file.getName()));
+        result.put(file.getName(), loadString(queryCacheDir + file.getName()));
       }
       return result;
     } catch (Exception e) {
