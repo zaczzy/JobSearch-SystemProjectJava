@@ -1,5 +1,5 @@
 package test.java;
-import main.APIServer;
+import main.java.APIServer;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
