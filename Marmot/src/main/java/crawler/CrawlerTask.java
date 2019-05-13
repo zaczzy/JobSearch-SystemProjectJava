@@ -8,13 +8,11 @@ public class CrawlerTask {
 	private String url;
 	private RobotsTxtInfo robotsTxtInfo;
 	private Date addTime;
-	private boolean isHtml;
 
 	public CrawlerTask(String url, RobotsTxtInfo robotsTxtInfo) {
 		this.url = url;
 		this.robotsTxtInfo = robotsTxtInfo;
 		this.addTime = new Date();
-		this.isHtml = false;
 	}
 
 	public String getUrl() {
@@ -29,11 +27,4 @@ public class CrawlerTask {
 		return this.robotsTxtInfo;
 	}
 
-	public boolean getIsHtml() {
-		return isHtml;
-	}
-
-	public void setHtml(boolean ishtml) {
-		isHtml = ishtml;
-	}
 }

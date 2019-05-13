@@ -1,7 +1,10 @@
 package model;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class CrawlerConfig {
-	static String startURL;
+	static String inputFile;
 	static String databaseDir;
 	static int size;
 	static int count;
@@ -11,14 +14,18 @@ public class CrawlerConfig {
 	static int requestReceived = 0;
 	static int pagesStored = 0;
 	static int urlAdded2Queue = 0;
+	static int totalWorker = 1;
 	static int myIndex = 0;
+	static String linksFileLocation = "./links/out_new_links_" + myIndex;
 
-	public static String getStartURL() {
-		return startURL;
+	public static Map<Integer, String> contactMap = new HashMap<>();
+
+	public static String getInputFile() {
+		return inputFile;
 	}
 
-	public static void setStartURL(String startURL) {
-		CrawlerConfig.startURL = startURL;
+	public static void setInputFile(String startURL) {
+		CrawlerConfig.inputFile = startURL;
 	}
 
 	public static String getDatabaseDir() {
@@ -96,5 +103,21 @@ public class CrawlerConfig {
 
 	public static void setMyIndex(int myIndex) {
 		CrawlerConfig.myIndex = myIndex;
+	}
+
+	public static void setLinksFileLocation(String location) {
+		 linksFileLocation = location;
+	}
+
+	public static String getLinksFileLocation() {
+		return linksFileLocation;
+	}
+
+	public static int getTotalWorker() {
+		return totalWorker;
+	}
+
+	public static void setTotalWorker(int totalWorker) {
+		CrawlerConfig.totalWorker = totalWorker;
 	}
 }

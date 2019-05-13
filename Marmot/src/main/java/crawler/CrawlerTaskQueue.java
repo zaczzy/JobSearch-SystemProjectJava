@@ -1,11 +1,11 @@
 package crawler;
 
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Stub class for implementing the queue of HttpTasks
  */
-public class CrawlerTaskQueue extends LinkedBlockingQueue {
+public class CrawlerTaskQueue extends ConcurrentLinkedQueue {
 //	private List<CrawlerTask> list;
 //	private int volume;
 

@@ -5,29 +5,21 @@ import java.util.Date;
 
 public class Doc implements Serializable {
 
-	int id;
+	String id;
 
 	String url;
-	String content;
 	Date crawledTime;
 	String md5Hash;
-	Boolean isHtml;
 
-	public Doc(int id, String url, String content, Date crawledTime, String md5Hash, boolean isHtml) {
+	public Doc(String id, String url, Date crawledTime, String md5Hash) {
 		this.id = id;
 		this.url = url;
-		this.content = content;
 		this.crawledTime = crawledTime;
 		this.md5Hash = md5Hash;
-		this.isHtml = isHtml;
 	}
 
-	public int getId() {
+	public String getId() {
 		return this.id;
-	}
-
-	public String getContent() {
-		return content;
 	}
 
 	public Date getCrawledTime() {
@@ -46,7 +38,4 @@ public class Doc implements Serializable {
 		return url;
 	}
 
-	public Boolean getHtml() {
-		return isHtml;
-	}
 }

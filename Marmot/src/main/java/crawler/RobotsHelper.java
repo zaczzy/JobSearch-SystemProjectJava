@@ -3,8 +3,6 @@ package crawler;
 import crawler.info.RobotsTxtInfo;
 import crawler.info.URLInfo;
 import model.CrawlerConfig;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import storage.StorageFactory;
 import storage.StorageInterface;
 
@@ -24,7 +22,7 @@ public class RobotsHelper {
 	 * Returns true if it's permissible to fetch the content,
 	 * eg that it satisfies the path restrictions from robots.txt
 	 */
-	static Logger log = LogManager.getLogger(RobotsHelper.class);
+//	static Logger log = LogManager.getLogger(RobotsHelper.class);
 
 	static StorageInterface db = StorageFactory.getDatabaseInstance(CrawlerConfig.getDatabaseDir());
 
@@ -65,27 +63,23 @@ public class RobotsHelper {
 			String protocol = urlInfo.isSecure() ? "https" : "http";
 			URL url = new URL(protocol, urlInfo.getHostName(), urlInfo.getPortNo(), urlInfo.getFilePath());
 			URLConnection connection =  url.openConnection();
-
 			if (db.getDocument(OriURL) != null) {
 				Date lastCrawledTime = db.getDocumentCrawledTime(OriURL);
 				connection.setIfModifiedSince(lastCrawledTime.getTime());
 			}
 			if (urlInfo.isSecure()) {
 				((HttpsURLConnection)connection).setRequestMethod("HEAD");
+				connection.setConnectTimeout(1000);
 				if (((HttpsURLConnection) connection).getResponseCode() != 200) {
-					if (((HttpsURLConnection) connection).getResponseCode() == 304) {
-						log.info(OriURL + ": Not Modified");
+//						log.info(OriURL + ": Not Modified");
 						return false;
-					}
 				}
 
 				int size = connection.getContentLength() / (1024 * 1024);
 				String type = connection.getContentType();
 				if (size > CrawlerConfig.getSize()) { return false; }
 				if (type == null) return false;
-				if (type.contains("text/html")) {
-					task.setHtml(true);
-				}
+
 				return (type.contains("text/html") || type.contains("xml"));
 			} else {
 				return false;
@@ -105,7 +99,7 @@ public class RobotsHelper {
 //				if (size > CrawlerConfig.getSize()) return false;
 //				return (type.contains("text/html") || type.contains("xml"));
 			}
-		} catch (IOException | ClassCastException e) {
+		} catch (IOException | ClassCastException | IllegalArgumentException e) {
 			return false;
 		}
 	}
@@ -125,12 +119,12 @@ public class RobotsHelper {
 				} else if (line.startsWith("Disallow: ")) {
 					if (line.contains("/")) robotsTxtInfo.addDisallowedLink(userAgent, line.substring(line.indexOf("/")));
 				} else if (line.startsWith("Crawl-delay: ")) {
-					robotsTxtInfo.addCrawlDelay(userAgent, Integer.valueOf(line.substring(line.indexOf(" ") + 1)));
+					robotsTxtInfo.addCrawlDelay(userAgent, Double.valueOf(line.substring(line.indexOf(" ") + 1)));
 				} else if (line.startsWith("Sitemap: ")) {
 					robotsTxtInfo.addSitemapLink(line.substring(line.indexOf(" ") + 1));
 				}
 			}
-		} catch (IOException e) {
+		} catch (IOException | java.lang.RuntimeException e) {
 //			e.printStackTrace();
 			return null;
 		}

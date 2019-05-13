@@ -23,6 +23,24 @@
                 <version>1.6.0</version>
                 <executions>
                     <execution>
+                        <id>s3test</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>aws.s3.S3Test</mainClass>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>dynamotest</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>aws.dynamoDB.DynamoTest</mainClass>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>master</id>
                         <goals>
                             <goal>java</goal>
@@ -30,10 +48,10 @@
                         <configuration>
                             <mainClass>crawler.MasterServer</mainClass>
                             <arguments>
-                                <argument>https://www.yahoo.com</argument>
-                                <argument>dbs0</argument>
+                                <argument>input_0</argument>
+                                <argument>dbs1</argument>
                                 <argument>1</argument>
-                                <argument>3000</argument>
+                                <argument>1000000</argument>
                                 <argument>0</argument>
                             </arguments>
                         </configuration>
@@ -46,10 +64,10 @@
                         <configuration>
                             <mainClass>crawler.WorkerServer</mainClass>
                             <arguments>
-                                <argument>https://www.reddit.com</argument>
-                                <argument>dbs1</argument>
+                                <argument>input_1</argument>
+                                <argument>dbs2</argument>
                                 <argument>1</argument>
-                                <argument>3000</argument>
+                                <argument>1000000</argument>
                                 <argument>1</argument>
                             </arguments>
                         </configuration>
@@ -62,11 +80,43 @@
                         <configuration>
                             <mainClass>crawler.WorkerServer</mainClass>
                             <arguments>
-                                <argument>https://www.twitter.com</argument>
-                                <argument>dbs2</argument>
+                                <argument>input_2</argument>
+                                <argument>dbs3</argument>
                                 <argument>1</argument>
-                                <argument>3000</argument>
+                                <argument>1000000</argument>
                                 <argument>2</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>worker3</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>crawler.WorkerServer</mainClass>
+                            <arguments>
+                                <argument>input_3</argument>
+                                <argument>dbs4</argument>
+                                <argument>1</argument>
+                                <argument>1000000</argument>
+                                <argument>3</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>worker4</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>crawler.WorkerServer</mainClass>
+                            <arguments>
+                                <argument>input_4</argument>
+                                <argument>dbs5</argument>
+                                <argument>1</argument>
+                                <argument>1000000</argument>
+                                <argument>4</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -79,11 +129,6 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.9.1</version>
-        </dependency>
-        <dependency>
-            <groupId>com.getguru.interview</groupId>
-            <artifactId>interview-assignment</artifactId>
-            <version>1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -111,6 +156,22 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
             <version>2.8.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.storm</groupId>
+            <artifactId>storm-core</artifactId>
+            <version>1.2.2</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.5.32</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/software.amazon.awssdk/dynamodb -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>dynamodb</artifactId>
+            <version>2.5.37</version>
         </dependency>
     </dependencies>
 

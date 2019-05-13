@@ -8,14 +8,14 @@ public class RobotsTxtInfo {
 	private HashMap<String, ArrayList<String>> disallowedLinks;
 	private HashMap<String, ArrayList<String>> allowedLinks;
 
-	private HashMap<String, Integer> crawlDelays;
+	private HashMap<String, Double> crawlDelays;
 	private ArrayList<String> sitemapLinks;
 	private ArrayList<String> userAgents;
 
 	public RobotsTxtInfo() {
 		disallowedLinks = new HashMap<String, ArrayList<String>>();
 		allowedLinks = new HashMap<String, ArrayList<String>>();
-		crawlDelays = new HashMap<String, Integer>();
+		crawlDelays = new HashMap<String, Double>();
 		sitemapLinks = new ArrayList<String>();
 		userAgents = new ArrayList<String>();
 	}
@@ -48,7 +48,7 @@ public class RobotsTxtInfo {
 		}
 	}
 
-	public void addCrawlDelay(String key, Integer value) {
+	public void addCrawlDelay(String key, double value) {
 		crawlDelays.put(key, value);
 	}
 
@@ -72,8 +72,8 @@ public class RobotsTxtInfo {
 		return allowedLinks.getOrDefault(key, null);
 	}
 
-	public int getCrawlDelay(String key) {
-		return crawlDelays.getOrDefault(key, -1);
+	public double getCrawlDelay(String key) {
+		return crawlDelays.getOrDefault(key, -1.0);
 	}
 
 	public void print() {

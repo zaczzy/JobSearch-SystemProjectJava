@@ -1,29 +1,25 @@
 package crawler;
 
+import aws.dynamoDB.DynamoDBService;
+import aws.s3.S3Service;
+import crawler.info.URLInfo;
 import model.CrawlerConfig;
-import org.apache.storm.shade.org.apache.commons.codec.digest.DigestUtils;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichBolt;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
-import org.apache.storm.tuple.Values;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import storage.StorageFactory;
-import storage.StorageInterface;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
-public class DocFetcherBolt implements IRichBolt {
+public class DocUploadBolt implements IRichBolt {
 //	static Logger log = LogManager.getLogger(DocFetcherBolt.class);
 	String executorId = UUID.randomUUID().toString();
 	Fields schema = new Fields("url", "content", "type", "id");
-	StorageInterface db;
-	int inc = 0;
 
 	OutputCollector collector;
 
@@ -42,36 +38,27 @@ public class DocFetcherBolt implements IRichBolt {
 	 */
 	@Override
 	public void execute(Tuple input) {
-		String content;
+		String content = input.getStringByField("content");
+		String suffix = "." + input.getStringByField("type");
 		String url = input.getStringByField("url");
-		String type;
-		//		log.debug(getExecutorId() + " received " + url);
+		URLInfo info = new URLInfo(url);
+		String docID = input.getStringByField("id");
 		try {
-			Document document = Jsoup.connect(url).userAgent("cis455crawler").get();
-			content = document.outerHtml();
-			String md5 = DigestUtils.md5Hex(content).toLowerCase();
-			if (content.toLowerCase().startsWith("<!doctype html") || content.toLowerCase().startsWith("<html")) {
-				type = "html";
-				String lang = document.getElementsByTag("html").first().attr("lang");
-				if (lang.toLowerCase().startsWith("en")) {
-					String docID = UUID.randomUUID().toString();
-					if (!db.ifMD5Exists(md5)) {
-						collector.emit(new Values(url, content, type, docID));
-					} else {
-						System.out.println(url + " is up to date");
-					}
-					db.addDocument(url, md5, docID);
-				}
-			} else {
-				type = "xml";
-				String docID = UUID.randomUUID().toString();
-				if (!db.ifMD5Exists(md5)) {
-					collector.emit(new Values(url, content, type, docID));
-				}
-				db.addDocument(url, md5, docID);
-			}
-		} catch (IOException e) {
-//			e.printStackTrace();
+			S3Service.getInstance().putFile("test5/" + docID + suffix, content);
+			System.out.println("Upload " + url);
+			String[][] fields = new String[4][2];
+			fields[0][0] = "url";
+			fields[0][1] = url;
+			fields[1][0] = "host";
+			fields[1][1] = info.getHostName();
+			fields[2][0] = "added time";
+			fields[2][1] = new Date().toString();
+			fields[3][0] = "isNew";
+			fields[3][1] = "true";
+			DynamoDBService.getInstance().put(docID, fields);
+			CrawlerConfig.incPagesStored();
+		} catch (IOException | java.lang.RuntimeException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -85,7 +72,6 @@ public class DocFetcherBolt implements IRichBolt {
 	@Override
 	public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
 		this.collector = collector;
-		this.db = StorageFactory.getDatabaseInstance(CrawlerConfig.getDatabaseDir());
 	}
 
 

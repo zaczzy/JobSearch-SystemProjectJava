@@ -3,24 +3,24 @@ package crawler;
 import crawler.info.RobotsTxtInfo;
 import crawler.info.URLInfo;
 import model.CrawlerConfig;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.IRichBolt;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
 import storage.StorageFactory;
 import storage.StorageInterface;
-import stormlite.OutputFieldsDeclarer;
-import stormlite.TopologyContext;
-import stormlite.bolt.IRichBolt;
-import stormlite.bolt.OutputCollector;
-import stormlite.routers.IStreamRouter;
-import stormlite.tuple.Fields;
-import stormlite.tuple.Tuple;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Map;
 import java.util.UUID;
 
 public class LinkFilterBolt implements IRichBolt {
 
-	static Logger log = LogManager.getLogger(LinkFilterBolt.class);
+//	static Logger log = LogManager.getLogger(LinkFilterBolt.class);
 	OutputCollector collector;
 	String executorId = UUID.randomUUID().toString();
 	Fields schema = new Fields();
@@ -52,23 +52,53 @@ public class LinkFilterBolt implements IRichBolt {
 		robotsLocation += info.getHostName() + "/robots.txt";
 		info.setFilePath(robotsLocation);
 		String host = info.getHostName();
-//		int mod = host.hashCode() % FilterSharedFactory.totalMachines;
-//		System.out.println(mod);
-//		if (mod != FilterSharedFactory.myNumber) {
-//			int destPort = mod + 8000;
-//			URL obj = null;
-//			try {
-//				obj = new URL("http://localhost:" + destPort + "/add?url=" + nextUrl);
-//				HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-//				con.setRequestMethod("GET");
-//				int responseCode = con.getResponseCode();
-//				if (responseCode == HttpURLConnection.HTTP_OK) {
-//					log.info(getExecutorId() + " sending " + nextUrl  +  "to " +destPort);
-//				}
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//		} else {
+		int mod;
+		if (host != null) {
+			 mod = host.hashCode() % CrawlerConfig.getTotalWorker();
+		} else {
+			mod = -1;
+		}
+		if (mod != -1 && CrawlerConfig.getTotalWorker() > 1 && mod != CrawlerConfig.getMyIndex()) {
+			URL obj;
+			try {
+				CrawlerConfig.incAddedUrl();
+				obj = new URL("http://" + CrawlerConfig.contactMap.get(mod) + "/add?url=" + nextUrl);
+				HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+				con.setRequestMethod("GET");
+				con.setConnectTimeout(500);
+				int responseCode = con.getResponseCode();
+				if (responseCode != HttpURLConnection.HTTP_OK) {
+					//Do it your self
+					RobotsTxtInfo robotsTxtInfo;
+					if (FilterSharedFactory.robotsTxtInfoHashMap.containsKey(robotsLocation)) {
+						robotsTxtInfo = FilterSharedFactory.robotsTxtInfoHashMap.get(robotsLocation);
+					} else {
+						robotsTxtInfo = RobotsHelper.parseRobotsTxt(robotsLocation);
+						if (robotsTxtInfo != null) {
+							FilterSharedFactory.robotsTxtInfoHashMap.put(robotsLocation, robotsTxtInfo);
+						}
+					}
+					CrawlerTask task = new CrawlerTask(nextUrl, robotsTxtInfo);
+					if (RobotsHelper.isOKtoCrawl(info, nextUrl, task) && RobotsHelper.isOKtoParse(info, robotsTxtInfo)) {
+						QueueFactory.getQueueInstance().offer(task);
+					}
+				}
+			} catch (IOException e) {
+				RobotsTxtInfo robotsTxtInfo;
+				if (FilterSharedFactory.robotsTxtInfoHashMap.containsKey(robotsLocation)) {
+					robotsTxtInfo = FilterSharedFactory.robotsTxtInfoHashMap.get(robotsLocation);
+				} else {
+					robotsTxtInfo = RobotsHelper.parseRobotsTxt(robotsLocation);
+					if (robotsTxtInfo != null) {
+						FilterSharedFactory.robotsTxtInfoHashMap.put(robotsLocation, robotsTxtInfo);
+					}
+				}
+				CrawlerTask task = new CrawlerTask(nextUrl, robotsTxtInfo);
+				if (RobotsHelper.isOKtoCrawl(info, nextUrl, task) && RobotsHelper.isOKtoParse(info, robotsTxtInfo)) {
+					QueueFactory.getQueueInstance().offer(task);
+				}
+			}
+		} else if (host != null) {
 			RobotsTxtInfo robotsTxtInfo;
 			if (FilterSharedFactory.robotsTxtInfoHashMap.containsKey(robotsLocation)) {
 				robotsTxtInfo = FilterSharedFactory.robotsTxtInfoHashMap.get(robotsLocation);
@@ -80,53 +110,37 @@ public class LinkFilterBolt implements IRichBolt {
 			}
 			CrawlerTask task = new CrawlerTask(nextUrl, robotsTxtInfo);
 			if (RobotsHelper.isOKtoCrawl(info, nextUrl, task) && RobotsHelper.isOKtoParse(info, robotsTxtInfo)) {
-				QueueFactory.getQueueInstance().add(task);
+				QueueFactory.getQueueInstance().offer(task);
 				CrawlerConfig.incAddedUrl();
-				log.info(getExecutorId() + " enqueueing " + task.getUrl());
-				Thread.yield();
-			}
-			CrawlerConfig.decreamentBuf();
-			if (CrawlerConfig.bufEmpty() && QueueFactory.getQueueInstance().isEmpty()) {
-				CrawlerConfig.setWhetherEnd(true);
 			}
 		}
+	}
 //	}
 
 	/**
 	 * Called when this task is initialized
 	 *
-	 * @param stormConf
+	 * @param conf
 	 * @param context
 	 * @param collector
 	 */
 	@Override
-	public void prepare(Map<String, String> stormConf, TopologyContext context, OutputCollector collector) {
+	public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
 		this.collector = collector;
 		this.size = CrawlerConfig.getSize();
 		this.db = StorageFactory.getDatabaseInstance(CrawlerConfig.getDatabaseDir());
 	}
 
-	/**
-	 * Called during topology creation: sets the output router
-	 *
-	 * @param router
-	 */
-	@Override
-	public void setRouter(IStreamRouter router) {
-		this.collector.setRouter(router);
-	}
 
 	/**
 	 * Get the list of fields in the stream tuple
 	 *
 	 * @return
 	 */
-	@Override
 	public Fields getSchema() {
 		return new Fields();
 	}
 
-	@Override
 	public String getExecutorId() {
 		return this.executorId;
 	}
@@ -134,6 +148,16 @@ public class LinkFilterBolt implements IRichBolt {
 	@Override
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {
 		declarer.declare(new Fields());
+	}
+
+	/**
+	 * Declare configuration specific to this component. Only a subset of the "topology.*" configs can
+	 * be overridden. The component configuration can be further overridden when constructing the
+	 * topology using {@link}
+	 */
+	@Override
+	public Map<String, Object> getComponentConfiguration() {
+		return null;
 	}
 
 }

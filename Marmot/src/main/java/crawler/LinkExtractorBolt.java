@@ -1,29 +1,32 @@
 package crawler;
 
 import model.CrawlerConfig;
-import stormlite.OutputFieldsDeclarer;
-import stormlite.TopologyContext;
-import stormlite.bolt.IRichBolt;
-import stormlite.bolt.OutputCollector;
-import stormlite.routers.IStreamRouter;
-import stormlite.tuple.Fields;
-import stormlite.tuple.Tuple;
-import stormlite.tuple.Values;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.IRichBolt;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
+import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 
 public class LinkExtractorBolt implements IRichBolt {
 
-	static Logger log = LogManager.getLogger(LinkExtractorBolt.class);
+//	static Logger log = LogManager.getLogger(LinkExtractorBolt.class);
 	OutputCollector collector;
 	String executorId = UUID.randomUUID().toString();
 	Fields schema = new Fields("url");
+
+	FileWriter fr;
 
 
 	/**
@@ -31,7 +34,11 @@ public class LinkExtractorBolt implements IRichBolt {
 	 */
 	@Override
 	public void cleanup() {
-
+		try {
+			fr.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -41,51 +48,41 @@ public class LinkExtractorBolt implements IRichBolt {
 	 */
 	@Override
 	public void execute(Tuple input) {
-		if ((boolean) input.getObjectByField("isHtml")) {
-			log.debug("Start extracting links for " + input.getStringByField("url"));
-			Document doc = (Document) input.getObjectByField("content");
+//		log.debug("Start extracting links for " + input.getStringByField("url"));
+		if (input.getStringByField("type").equals("html")) {
+			Document doc = Jsoup.parse(input.getStringByField("content"));
 			Elements links = doc.select("a[href]");
-			addNextPage(links);
-		}
-		CrawlerConfig.decreamentBuf();
-		if (CrawlerConfig.bufEmpty() && QueueFactory.getQueueInstance().isEmpty()) {
-			CrawlerConfig.setWhetherEnd(true);
+			addNextPage(input.getStringByField("url"), links);
 		}
 	}
 
 	/**
 	 * Called when this task is initialized
 	 *
-	 * @param stormConf
+	 * @param conf
 	 * @param context
 	 * @param collector
 	 */
 	@Override
-	public void prepare(Map<String, String> stormConf, TopologyContext context, OutputCollector collector) {
+	public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
 		this.collector = collector;
+		try {
+			fr = new FileWriter(new File(CrawlerConfig.getLinksFileLocation()), true);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
-	/**
-	 * Called during topology creation: sets the output router
-	 *
-	 * @param router
-	 */
-	@Override
-	public void setRouter(IStreamRouter router) {
-		this.collector.setRouter(router);
-	}
 
 	/**
 	 * Get the list of fields in the stream tuple
 	 *
 	 * @return
 	 */
-	@Override
 	public Fields getSchema() {
 		return this.schema;
 	}
 
-	@Override
 	public String getExecutorId() {
 		return this.executorId;
 	}
@@ -95,15 +92,41 @@ public class LinkExtractorBolt implements IRichBolt {
 		declarer.declare(this.schema);
 	}
 
-	private void addNextPage(Elements links) {
+	/**
+	 * Declare configuration specific to this component. Only a subset of the "topology.*" configs can
+	 * be overridden. The component configuration can be further overridden when constructing the
+	 * topology using {@link }
+	 */
+	@Override
+	public Map<String, Object> getComponentConfiguration() {
+		return null;
+	}
+
+	private void addNextPage(String url, Elements links) {
 		for (Element e : links) {
 			CrawlerConfig.increamentBuf();
 			String nextUrl = e.attr("abs:href");
-			if (!FilterSharedFactory.outerLinkSet.contains(nextUrl)) {
-				collector.emit(new Values<>(nextUrl));
+			if (!FilterSharedFactory.outerLinkSet.contains(nextUrl)
+							&& !nextUrl.contains("?")
+							&& nextUrl.startsWith("https://")
+							&& !nextUrl.contains("login")
+							&& !nextUrl.contains("submit")
+							&& !nextUrl.contains("redirect")
+							&& !nextUrl.contains("account")
+							&& nextUrl.length() < 80) {
+				collector.emit(new Values(nextUrl));
 				FilterSharedFactory.outerLinkSet.add(nextUrl);
-				log.debug(getExecutorId() + " emitting " + nextUrl);
+				writeLocalLinksFile(url, nextUrl);
+//				log.debug(getExecutorId() + " emitting " + nextUrl);
 			}
+		}
+	}
+
+	private void writeLocalLinksFile(String from, String to) {
+		try {
+			fr.write(from + "\t" + to + "\n");
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 }

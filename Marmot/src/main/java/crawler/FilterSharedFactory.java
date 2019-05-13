@@ -12,7 +12,4 @@ public class FilterSharedFactory {
 	public static Map<String, RobotsTxtInfo> robotsTxtInfoHashMap = new HashMap<>();
 	public static Set<String> outerLinkSet = new HashSet<>();
 
-	static int myNumber = 0;
-	static int totalMachines = 0;
-
 }
