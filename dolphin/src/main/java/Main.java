@@ -1,5 +1,6 @@
 import cache.CacheService;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 
 import static spark.Spark.get;
 import static spark.Spark.port;
@@ -45,8 +46,11 @@ public class Main {
             try {
                 res.type("application/json");
                 AdvancedAgent agent = new AdvancedAgent(query);
+                JSONObject jobj = new JSONObject();
+                jobj.put("results", agent.getResults());
+                jobj.put("total", agent.getNumResultsFound());
                 CacheService.getInstance().writeQueryCache(query, JSON.toJSONString(agent.getResults()));
-                return JSON.toJSONString(agent.getResults());
+                return jobj;
             } catch (Exception e) {
                 e.printStackTrace();
                 return "Fucked up";

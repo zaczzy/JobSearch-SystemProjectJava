@@ -12,6 +12,7 @@ import org.javalite.activejdbc.DB;
 import org.javalite.activejdbc.ModelListener;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -48,28 +49,29 @@ public class AdvancedAgent {
         this.positions = new ConcurrentHashMap<>();
         this.results = new ConcurrentHashMap<>();
         this.finalRanking = new ArrayList<>();
-        this.ranks = new PriorityQueue<DocumentRank>(30, new Comparator<DocumentRank>() {
+        this.ranks = new PriorityQueue<DocumentRank>(50, new Comparator<DocumentRank>() {
             @Override
             public int compare(DocumentRank o1, DocumentRank o2) {
                 return (o2.score - o1.score) >= 0 ? 1 : -1;
             }
         });
+        long start = System.currentTimeMillis();
+        System.out.println("Start Query ");
         populateQueryWtf(rawQuery);
+        System.out.println("Before FetchAndUpdate(): +" + (System.currentTimeMillis() - start));
         fetchAndUpdate();
+        System.out.println("Before mergeSets(): +" + (System.currentTimeMillis() - start));
         List<String> finalists = mergeSets();
-        for (String s : finalists) {
-            System.out.println(docToUrl.get(s));
-        }
+        System.out.println("Before populatePriorityQueue() : +" + (System.currentTimeMillis() - start));
         populatePriorityQueue(finalists);
-        for (int i = 0; i < 20; i++)  {
-            if (ranks == null) {
-                System.out.println("🛑 WTF???");
-            }
+        System.out.println("Before populateResults() : +" + (System.currentTimeMillis() - start));
+        for (int i = 0; i < 50; i++)  {
             DocumentRank rank = ranks.poll();
             if (rank == null) { break; }
             finalRanking.add(rank.docId);
         }
         populateResults();
+        System.out.print("Finish : +" + (System.currentTimeMillis() - start));
     }
 
     /**
@@ -92,41 +94,44 @@ public class AdvancedAgent {
         for (Map.Entry<String, Double> entry : record.entrySet()) {
             queryWordToWtf.put(entry.getKey(), entry.getValue() / euclideanSum);
         }
-        System.out.println("👼 Query WTF: " + queryWordToWtf.toString());
     }
 
     private void fetchAndUpdate() {
-//        ExecutorService fetcherPool = Executors.newFixedThreadPool(queryWordToWtf.size());
         CountDownLatch latch = new CountDownLatch(queryWordToWtf.size());
-        System.out.println("latch!" + latch.toString());
         for (Map.Entry<String, Double> entry : queryWordToWtf.entrySet()) {
             new DBFetcherTask(entry.getKey(), latch).start();
         }
         try {
             latch.await();
-            System.out.println(queryWordToIdf.toString());
-            System.out.println(docPageRankScores.size());
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     public void populatePriorityQueue(List<String> documents) {
+        HashSet<String> strippedUrls = new HashSet<>();
         for (String id : documents) {
+            String first = docToUrl.get(id).split("#")[0];
+            if (strippedUrls.contains(first)) { continue; }
+            strippedUrls.add(first);
             Double cosineScore = docCosineSimScores.get(id);
             Double pageRankScore = docPageRankScores.get(id);
-//            int[] pairs = ClosestPair.findClosestIndices(docToPosList.get(id));
-//            if (pairs == null) {
-//                System.out.println("[❌] Closest pair not found");
-//                continue;
-//            }
-//            int closeness = pairs[0];
-//            this.positions.put(id, pairs);
-            System.out.println(id + ": " + "cosine = " + cosineScore + ", pageRank = " + pageRankScore + ", url=" + docToUrl.get(id));
-            Double score = cosineScore * 8 + Math.log(2 + pageRankScore) * 2;
+            int[] pairs = ClosestPair.findClosestIndices(docToPosList.get(id));
+            double closeness = pairs[0];
+            /* TODO: add closeness to the metrix */
+            Double score;
+            if (closeness > 0) {
+                score = cosineScore * 8 + sigmoid(2 + pageRankScore) * 2 + 2 * (5.0 / closeness);
+            } else {
+                score = cosineScore * 8 + sigmoid(2 + pageRankScore) * 2;
+            }
             DocumentRank rank = new DocumentRank(id, score);
             ranks.add(rank);
         }
+    }
+
+    private double sigmoid(double x) {
+        return (1/( 1 + Math.pow(Math.E,(-1*x))));
     }
 
     public void populateResults() {
@@ -159,9 +164,15 @@ public class AdvancedAgent {
     public List<SearchResult> getResults() {
         List<SearchResult> sr = new ArrayList<>();
         for (String id : finalRanking) {
-            sr.add(results.get(id));
+            if (results.get(id) != null) {
+                sr.add(results.get(id));
+            }
         }
         return sr;
+    }
+
+    public int getNumResultsFound() {
+        return ranks.size() + finalRanking.size();
     }
 
     private class DocumentRank{
@@ -223,7 +234,7 @@ public class AdvancedAgent {
             }
             DB db = new DB("default");
             db.open(Credentials.jdbcDriver, Credentials.dbUrl, Credentials.dbUser, Credentials.dbUserPW);
-            List<Keyword> keywords = Keyword.findBySQL("SELECT * FROM keywords WHERE word='" + word +"'");
+            List<Keyword> keywords = Keyword.findBySQL("SELECT * FROM keywords WHERE word='" + word +"' ORDER BY wtf LIMIT 5000");
             queryWordToIdf.put(word, getIDF(keywords));
             queryWordToWtf.put(word, queryWordToWtf.get(word) * queryWordToIdf.get(word));
             List<WordQryResult> toCache = new ArrayList<>();
@@ -267,7 +278,6 @@ public class AdvancedAgent {
             });
             CacheService.getInstance().writeKWDCache(word, toCache);
             db.close();
-            System.out.println(word + ":" + getIDF(keywords));
             latch.countDown();
         }
     }
@@ -278,44 +288,87 @@ public class AdvancedAgent {
         @Override
         public void run() {
             Article article = null;
+            String posContent = null;
             try {
                 String url = docId + ".html";
                 String content = S3Service.getInstance().getFileAsString(url);
+                posContent = getContentString(content);
                 Document doc = Jsoup.parse(content);
                 article = ArticleExtractor.with("", doc).extractMetadata().extractContent().article();
             } catch (Exception e) {
                 System.err.println(docId);
-                e.printStackTrace();
             }
-            if (article == null) {
+            if (article == null || posContent == null) {
                 System.err.println("[❌ERROR:] Article is NULL !!!");
                 latch.countDown();
+            } else {
+                String title = article.title;
+                String url = docToUrl.get(docId);
+                String excerpt = getExerptFor(posContent, docId);
+                results.put(docId, new SearchResult(title, url, excerpt));
+                latch.countDown();
             }
-            String title = article.title;
-            String url = docToUrl.get(docId);
-            String excerpt = getExerptFor(article);
-            results.put(docId, new SearchResult(title, url, excerpt));
-            latch.countDown();
         }
     }
 
-    private String getExerptFor(Article article) {
-        String mainContent = article.description + article.document.text();
-        if (mainContent.length() < 500) {
-            return mainContent;
+    private String getExerptFor(String content, String docId) {
+        int[] pair = positions.get(docId);
+        if (pair == null || pair[0] > content.length()) {
+            if (content.length() < 500) {
+                return content;
+            } else {
+                return content.substring(0, 500);
+            }
         } else {
-            return mainContent.substring(0, 500);
+            content = content.substring(pair[0], content.length());
+            if (content.length() < 500) {
+                return content;
+            } else {
+                return content.substring(0, 500);
+            }
         }
+    }
+
+    private String getContentString(String content) {
+        Document doc = Jsoup.parse(content);
+
+        // Parse with Crux
+        Article article = ArticleExtractor.with("", doc).extractMetadata().extractContent().article();
+
+        // Eliminate irrelevant tags
+        doc.select("select").remove();
+        doc.select("script").remove();
+        doc.select("form").remove();
+
+        Document newdoc = article.document;
+        if (newdoc == null) {
+            System.err.println("Crux: NULL");
+            return "";
+        }
+
+        // Extract elements
+        String body = "";
+        if (newdoc.text().length() >= doc.body().text().length() / 5) {
+            doc = newdoc;
+            body = newdoc.text();
+        } else {
+            Element ele = doc.body();
+            if(ele != null) { body = ele.text(); }
+        }
+
+        String title = article.title;
+        String description = article.description;
+        return title + description + body;
     }
 
     private double getIDF(List<Keyword> keywords) {
         double total = 700000; double count = 0;
         if (keywords.size()  < 1) { return 0.01; }
-        if (keywords.size() < 1000)  { count = keywords.size(); }
+        if (keywords.size() < 3000)  { count = keywords.size(); }
         else {
             Double last = 1 + keywords.get(keywords.size() - 1).getDouble("pagerank");
             int multiplier = Long.valueOf(Math.round(last)).intValue();
-            count = 2000 * multiplier;
+            count = 3000 * multiplier;
         }
         return Math.log(total / count);
     }
