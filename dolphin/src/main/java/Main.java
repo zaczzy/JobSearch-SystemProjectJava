@@ -34,20 +34,6 @@ public class Main {
             }
         });
 
-//        /* Real Query Endpoint */
-//        get("advanced", (req, res) -> {
-//            String query = req.queryParams("query");
-//            System.out.println("advanced" + query);
-//            try {
-//                res.type("application/json");
-//                AdvancedAgent agent = new AdvancedAgent(query);
-//                return JSON.toJSONString(agent.getResults());
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//                return "Fucked up";
-//            }
-//        });
-
         // The following code is used with cache
         get("advanced", (req, res) -> {
             String query = req.queryParams("query");
