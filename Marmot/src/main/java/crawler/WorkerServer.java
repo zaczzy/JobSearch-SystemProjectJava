@@ -8,6 +8,8 @@ import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
 import org.apache.storm.topology.TopologyBuilder;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -23,7 +25,7 @@ import static spark.Spark.port;
 
 public class WorkerServer {
 
-  static String masterAddress = "localhost:8000";
+  static String masterAddress = "127.0.0.1:8000";
   static String myPort = "";
 
   /**
@@ -39,11 +41,13 @@ public class WorkerServer {
       System.exit(1);
     }
 
-    String startUrl = args[0];
+    String inputFile = args[0];
     String envPath = args[1];
     int size = Integer.valueOf(args[2]);
     int count = args.length == 4 ? Integer.valueOf(args[3]) : 100;
     int selfIndex = Integer.valueOf(args[4]);
+    setLinksFileLocation("./links/out_links_" + selfIndex);
+
 
     CrawlerConfig.setMyIndex(selfIndex);
     myPort = String.valueOf(8000 + selfIndex);
@@ -60,11 +64,13 @@ public class WorkerServer {
 
     TimerTask reportTask = new periodicallyReport();
     Timer timer = new Timer();
-    timer.scheduleAtFixedRate(reportTask,500,10000);
+    timer.scheduleAtFixedRate(reportTask,500,30000);
     registerRcvNotice();
 
     Config config = new Config();
-    setStartURL(startUrl);
+    config.setNumWorkers(2);
+    config.setMaxSpoutPending(3000);
+    setInputFile("input/" + inputFile);
     setDatabaseDir(envPath);
     setCount(count);
     setSize(size);
@@ -79,42 +85,51 @@ public class WorkerServer {
 
     TopologyBuilder builder = new TopologyBuilder();
 
-    builder.setSpout("CRAWLER_QUEUE_SPOUT", new CrawlerQueueSpout(), 10);
+    builder.setSpout("CRAWLER_QUEUE_SPOUT", new CrawlerQueueSpout(), 4);
 
-//    builder.setBolt("DOC_FETCHER_BOLT", new DocFetcherBolt(), 10).shuffleGrouping("CRAWLER_QUEUE_SPOUT");
+    builder.setBolt("DOC_FETCHER_BOLT", new DocFetcherBolt(), 8).shuffleGrouping("CRAWLER_QUEUE_SPOUT");
 
-//		builder.setBolt("DOC_UPLOAD_BOLT",  new DocUploadBolt(), 20).shuffleGrouping("DOC_FETCHER_BOLT");
+		builder.setBolt("DOC_UPLOAD_BOLT",  new DocUploadBolt(), 16).shuffleGrouping("DOC_FETCHER_BOLT");
 
-//    builder.setBolt("LINK_EXTRACTOR_BOLT", new LinkExtractorBolt(), 20).shuffleGrouping("DOC_FETCHER_BOLT");
-//
-//    builder.setBolt("LINK_FILTER_BOLT", new LinkFilterBolt(), 20).shuffleGrouping("LINK_EXTRACTOR_BOLT");
+    builder.setBolt("LINK_EXTRACTOR_BOLT", new LinkExtractorBolt(), 8).shuffleGrouping("DOC_FETCHER_BOLT");
 
-    LocalCluster cluster = new LocalCluster();
-    URLInfo info = new URLInfo(getStartURL());
-    String robotsLocation = info.isSecure() ? "https://" : "http://";
-    robotsLocation += info.getHostName() + "/robots.txt";
-    RobotsTxtInfo robotsTxtInfo = RobotsHelper.parseRobotsTxt(robotsLocation);
-    CrawlerTask task = new CrawlerTask(getStartURL(), robotsTxtInfo);
+    builder.setBolt("LINK_FILTER_BOLT", new LinkFilterBolt(), 16).shuffleGrouping("LINK_EXTRACTOR_BOLT");
 
-
-    if (RobotsHelper.isOKtoCrawl(info, getStartURL(), task) && RobotsHelper.isOKtoParse(info, robotsTxtInfo)) {
-      QueueFactory.getQueueInstance().add(task);
+    BufferedReader reader;
+    try {
+      reader = new BufferedReader(new FileReader(
+              getInputFile()));
+      String nextURL = reader.readLine();
+      while (nextURL != null) {
+        URLInfo info = new URLInfo(nextURL);
+        String robotsLocation = info.isSecure() ? "https://" : "http://";
+        robotsLocation += info.getHostName() + "/robots.txt";
+        RobotsTxtInfo robotsTxtInfo = RobotsHelper.parseRobotsTxt(robotsLocation);
+        CrawlerTask task = new CrawlerTask(nextURL, robotsTxtInfo);
+        if (RobotsHelper.isOKtoCrawl(info, nextURL, task) && RobotsHelper.isOKtoParse(info, robotsTxtInfo)) {
+          QueueFactory.getQueueInstance().add(task);
+        }
+        nextURL = reader.readLine();
+      }
+      reader.close();
+    } catch (IOException e) {
+      e.printStackTrace();
     }
 
-    cluster.submitTopology("test", config,
+    LocalCluster cluster = new LocalCluster();
+    cluster.submitTopology("test" + selfIndex, config,
             builder.createTopology());
     setWhetherEnd(false);
-    while (!isWhetherEnd()) {
+    while (true) {
       try {
         Thread.sleep(10);
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
     }
-    while (true);
-//    cluster.killTopology("test");
+//    cluster.killTopology("test" + selfIndex);
 //    cluster.shutdown();
-
+//
 //    System.exit(0);
   }
 
@@ -149,7 +164,6 @@ public class WorkerServer {
           System.out.println("Something wrong");
         }
       } catch (IOException e) {
-        CrawlerConfig.setWhetherEnd(true);
       }
     }
   }

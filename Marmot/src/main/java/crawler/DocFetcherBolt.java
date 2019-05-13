@@ -1,6 +1,7 @@
 package crawler;
 
 import model.CrawlerConfig;
+import org.apache.storm.shade.org.apache.commons.codec.digest.DigestUtils;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichBolt;
@@ -48,31 +49,26 @@ public class DocFetcherBolt implements IRichBolt {
 		try {
 			Document document = Jsoup.connect(url).userAgent("cis455crawler").get();
 			content = document.outerHtml();
+			String md5 = DigestUtils.md5Hex(content).toLowerCase();
 			if (content.toLowerCase().startsWith("<!doctype html") || content.toLowerCase().startsWith("<html")) {
 				type = "html";
 				String lang = document.getElementsByTag("html").first().attr("lang");
 				if (lang.toLowerCase().startsWith("en")) {
-					if (db.checkIfFull()) {
-						CrawlerConfig.setWhetherEnd(true);
-					}
 					String docID = UUID.randomUUID().toString();
-					if (!db.ifMD5Exists(content)) {
+					if (!db.ifMD5Exists(md5)) {
 						collector.emit(new Values(url, content, type, docID));
 					} else {
 						System.out.println(url + " is up to date");
 					}
-					db.addDocument(url, content, docID);
+					db.addDocument(url, md5, docID);
 				}
 			} else {
 				type = "xml";
-				if (db.checkIfFull()) {
-					CrawlerConfig.setWhetherEnd(true);
-				}
 				String docID = UUID.randomUUID().toString();
-				if (!db.ifMD5Exists(content)) {
+				if (!db.ifMD5Exists(md5)) {
 					collector.emit(new Values(url, content, type, docID));
 				}
-				db.addDocument(url, content, docID);
+				db.addDocument(url, md5, docID);
 			}
 		} catch (IOException e) {
 //			e.printStackTrace();

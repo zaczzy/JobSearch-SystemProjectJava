@@ -6,13 +6,17 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 public class S3Service {
 
@@ -107,7 +111,27 @@ public class S3Service {
         client.putObject(PutObjectRequest.builder().bucket(bucketName).key(fileName)
                         .build(),
                 RequestBody.fromByteBuffer(buf));
+    }
 
+    /**
+     *
+     * @param fileName -- name of the file
+     * @return a string of the file content.
+     * @throws IOException -- If the file does not exist.
+     */
+    public void listFile(String fileName, String content) throws IOException {
+        List<String> collection = new ArrayList<String>();
+        /* Request */
+        ListObjectsV2Request listReq = ListObjectsV2Request.builder()
+                .bucket(bucketName).prefix("/test")
+                .maxKeys(1)
+                .build();
+        /* Paginated Response as Iterable */
+        ListObjectsV2Iterable listRes = client.listObjectsV2Paginator(listReq);
+        /* Retrieve Results*/
+        listRes.contents().stream().forEach(cont -> {
+            if (cont.size() > 0) { collection.add(cont.key()); }
+        });
     }
 
 }

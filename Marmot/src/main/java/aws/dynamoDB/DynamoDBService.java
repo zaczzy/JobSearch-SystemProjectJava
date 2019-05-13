@@ -6,6 +6,7 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
+import software.amazon.awssdk.services.dynamodb.paginators.ScanIterable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -74,4 +75,39 @@ public class DynamoDBService {
     UpdateItemRequest updateRequest = UpdateItemRequest.builder().tableName(Credentials.TABLE_NAME).key(item_key).attributeUpdates(item_values).build();
     dbClient.updateItem(updateRequest);
   }
+
+  public Map<String, String> getAllURLS(String tableName) {
+    ScanRequest request =
+            ScanRequest.builder()
+                    .tableName(tableName)
+                    .build();
+    ScanIterable response = dbClient.scanPaginator(request);
+    Map<String, String> ret = new HashMap<>();
+    for (ScanResponse page : response) {
+      for (Map<String, AttributeValue> item : page.items()) {
+        if (item.get("isNew").s().equals("true")) {
+          ret.put(item.get("url").s(), item.get("ID").s());
+        }
+      }
+    }
+    return ret;
+  }
+
+  public Map<String, String> getID2HostMap() {
+    ScanRequest request =
+            ScanRequest.builder()
+                    .tableName(Credentials.TABLE_NAME)
+                    .build();
+    ScanIterable response = dbClient.scanPaginator(request);
+    Map<String, String> ret = new HashMap<>();
+    for (ScanResponse page : response) {
+      for (Map<String, AttributeValue> item : page.items()) {
+        if (item.get("isNew").s().equals("true")) {
+          ret.put(item.get("ID").s(), item.get("host").s());
+        }
+      }
+    }
+    return ret;
+  }
+
 }

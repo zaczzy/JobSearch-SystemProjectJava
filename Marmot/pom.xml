@@ -48,7 +48,7 @@
                         <configuration>
                             <mainClass>crawler.MasterServer</mainClass>
                             <arguments>
-                                <argument>https://www.yahoo.com</argument>
+                                <argument>input_0</argument>
                                 <argument>dbs1</argument>
                                 <argument>1</argument>
                                 <argument>1000000</argument>
@@ -64,8 +64,8 @@
                         <configuration>
                             <mainClass>crawler.WorkerServer</mainClass>
                             <arguments>
-                                <argument>https://www.reddit.com</argument>
-                                <argument>dbs1</argument>
+                                <argument>input_1</argument>
+                                <argument>dbs2</argument>
                                 <argument>1</argument>
                                 <argument>1000000</argument>
                                 <argument>1</argument>
@@ -80,11 +80,43 @@
                         <configuration>
                             <mainClass>crawler.WorkerServer</mainClass>
                             <arguments>
-                                <argument>https://www.twitter.com</argument>
-                                <argument>dbs1</argument>
+                                <argument>input_2</argument>
+                                <argument>dbs3</argument>
                                 <argument>1</argument>
                                 <argument>1000000</argument>
                                 <argument>2</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>worker3</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>crawler.WorkerServer</mainClass>
+                            <arguments>
+                                <argument>input_3</argument>
+                                <argument>dbs4</argument>
+                                <argument>1</argument>
+                                <argument>1000000</argument>
+                                <argument>3</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>worker4</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>crawler.WorkerServer</mainClass>
+                            <arguments>
+                                <argument>input_4</argument>
+                                <argument>dbs5</argument>
+                                <argument>1</argument>
+                                <argument>1000000</argument>
+                                <argument>4</argument>
                             </arguments>
                         </configuration>
                     </execution>

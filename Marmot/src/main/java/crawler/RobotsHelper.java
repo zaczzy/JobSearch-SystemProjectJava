@@ -63,28 +63,23 @@ public class RobotsHelper {
 			String protocol = urlInfo.isSecure() ? "https" : "http";
 			URL url = new URL(protocol, urlInfo.getHostName(), urlInfo.getPortNo(), urlInfo.getFilePath());
 			URLConnection connection =  url.openConnection();
-
 			if (db.getDocument(OriURL) != null) {
 				Date lastCrawledTime = db.getDocumentCrawledTime(OriURL);
 				connection.setIfModifiedSince(lastCrawledTime.getTime());
 			}
 			if (urlInfo.isSecure()) {
 				((HttpsURLConnection)connection).setRequestMethod("HEAD");
-				connection.setConnectTimeout(5000);
+				connection.setConnectTimeout(1000);
 				if (((HttpsURLConnection) connection).getResponseCode() != 200) {
-					if (((HttpsURLConnection) connection).getResponseCode() == 304) {
 //						log.info(OriURL + ": Not Modified");
 						return false;
-					}
 				}
 
 				int size = connection.getContentLength() / (1024 * 1024);
 				String type = connection.getContentType();
 				if (size > CrawlerConfig.getSize()) { return false; }
 				if (type == null) return false;
-				if (type.contains("text/html")) {
-					task.setHtml(true);
-				}
+
 				return (type.contains("text/html") || type.contains("xml"));
 			} else {
 				return false;
@@ -129,7 +124,7 @@ public class RobotsHelper {
 					robotsTxtInfo.addSitemapLink(line.substring(line.indexOf(" ") + 1));
 				}
 			}
-		} catch (IOException | NumberFormatException e) {
+		} catch (IOException | java.lang.RuntimeException e) {
 //			e.printStackTrace();
 			return null;
 		}

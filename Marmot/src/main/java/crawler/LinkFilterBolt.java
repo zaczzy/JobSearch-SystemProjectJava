@@ -12,6 +12,9 @@ import org.apache.storm.tuple.Tuple;
 import storage.StorageFactory;
 import storage.StorageInterface;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Map;
 import java.util.UUID;
 
@@ -49,23 +52,53 @@ public class LinkFilterBolt implements IRichBolt {
 		robotsLocation += info.getHostName() + "/robots.txt";
 		info.setFilePath(robotsLocation);
 		String host = info.getHostName();
-		int mod = host.hashCode() % FilterSharedFactory.totalMachines;
-//		System.out.println(mod);
-//		if (mod != FilterSharedFactory.myNumber) {
-//			int destPort = mod + 8000;
-//			URL obj = null;
-//			try {
-//				obj = new URL("http://localhost:" + destPort + "/add?url=" + nextUrl);
-//				HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-//				con.setRequestMethod("GET");
-//				int responseCode = con.getResponseCode();
-//				if (responseCode == HttpURLConnection.HTTP_OK) {
-//					log.info(getExecutorId() + " sending " + nextUrl  +  "to " +destPort);
-//				}
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//		} else {
+		int mod;
+		if (host != null) {
+			 mod = host.hashCode() % CrawlerConfig.getTotalWorker();
+		} else {
+			mod = -1;
+		}
+		if (mod != -1 && CrawlerConfig.getTotalWorker() > 1 && mod != CrawlerConfig.getMyIndex()) {
+			URL obj;
+			try {
+				CrawlerConfig.incAddedUrl();
+				obj = new URL("http://" + CrawlerConfig.contactMap.get(mod) + "/add?url=" + nextUrl);
+				HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+				con.setRequestMethod("GET");
+				con.setConnectTimeout(500);
+				int responseCode = con.getResponseCode();
+				if (responseCode != HttpURLConnection.HTTP_OK) {
+					//Do it your self
+					RobotsTxtInfo robotsTxtInfo;
+					if (FilterSharedFactory.robotsTxtInfoHashMap.containsKey(robotsLocation)) {
+						robotsTxtInfo = FilterSharedFactory.robotsTxtInfoHashMap.get(robotsLocation);
+					} else {
+						robotsTxtInfo = RobotsHelper.parseRobotsTxt(robotsLocation);
+						if (robotsTxtInfo != null) {
+							FilterSharedFactory.robotsTxtInfoHashMap.put(robotsLocation, robotsTxtInfo);
+						}
+					}
+					CrawlerTask task = new CrawlerTask(nextUrl, robotsTxtInfo);
+					if (RobotsHelper.isOKtoCrawl(info, nextUrl, task) && RobotsHelper.isOKtoParse(info, robotsTxtInfo)) {
+						QueueFactory.getQueueInstance().offer(task);
+					}
+				}
+			} catch (IOException e) {
+				RobotsTxtInfo robotsTxtInfo;
+				if (FilterSharedFactory.robotsTxtInfoHashMap.containsKey(robotsLocation)) {
+					robotsTxtInfo = FilterSharedFactory.robotsTxtInfoHashMap.get(robotsLocation);
+				} else {
+					robotsTxtInfo = RobotsHelper.parseRobotsTxt(robotsLocation);
+					if (robotsTxtInfo != null) {
+						FilterSharedFactory.robotsTxtInfoHashMap.put(robotsLocation, robotsTxtInfo);
+					}
+				}
+				CrawlerTask task = new CrawlerTask(nextUrl, robotsTxtInfo);
+				if (RobotsHelper.isOKtoCrawl(info, nextUrl, task) && RobotsHelper.isOKtoParse(info, robotsTxtInfo)) {
+					QueueFactory.getQueueInstance().offer(task);
+				}
+			}
+		} else if (host != null) {
 			RobotsTxtInfo robotsTxtInfo;
 			if (FilterSharedFactory.robotsTxtInfoHashMap.containsKey(robotsLocation)) {
 				robotsTxtInfo = FilterSharedFactory.robotsTxtInfoHashMap.get(robotsLocation);
@@ -77,16 +110,11 @@ public class LinkFilterBolt implements IRichBolt {
 			}
 			CrawlerTask task = new CrawlerTask(nextUrl, robotsTxtInfo);
 			if (RobotsHelper.isOKtoCrawl(info, nextUrl, task) && RobotsHelper.isOKtoParse(info, robotsTxtInfo)) {
-				QueueFactory.getQueueInstance().add(task);
+				QueueFactory.getQueueInstance().offer(task);
 				CrawlerConfig.incAddedUrl();
-//				log.info(getExecutorId() + " enqueueing " + task.getUrl());
-				Thread.yield();
-			}
-			CrawlerConfig.decreamentBuf();
-			if (CrawlerConfig.bufEmpty() && QueueFactory.getQueueInstance().isEmpty()) {
-				CrawlerConfig.setWhetherEnd(true);
 			}
 		}
+	}
 //	}
 
 	/**

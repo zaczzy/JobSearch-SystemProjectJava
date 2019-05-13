@@ -82,33 +82,24 @@ public class StorageFactory {
 				 * Add a new document, getting its ID
 				 *
 				 * @param url
-				 * @param documentContents
 				 */
 				@Override
-				public boolean addDocument(String url, String documentContents, String id) {
-					StringBuilder sb = new StringBuilder();
+				public boolean addDocument(String url, String md5, String id) {
 					boolean needUpdate = true;
-					try {
-						MessageDigest md = MessageDigest.getInstance("MD5");
-						byte[] hashInBytes = md.digest(documentContents.getBytes());
-						for (byte b : hashInBytes) sb.append(String.format("%02x", b));
-					} catch (NoSuchAlgorithmException e) {
-						e.printStackTrace();
-					}
-					String md5 = sb.toString();
 					if (docMap.containsKey(url)) {
 						//No need to update anything, keep the previous docID
 						if (md5.equals(docMap.get(url).getMd5Hash())) {
 							System.out.println(url + " is up to date");
 							needUpdate = false;
 							id = docMap.get(url).getId();
+						} else {
+							//Update the dynamoDB
+							String oldID = docMap.get(url).getId();
+							String[][] updateFields = new String[1][2];
+							updateFields[0][0] = "isNew";
+							updateFields[0][1] = "false";
+							DynamoDBService.getInstance().update(oldID, updateFields);
 						}
-						//Update the document in S3
-						String oldID = docMap.get(url).getId();
-						String[][] updateFields = new String[1][2];
-						updateFields[0][0] = "isNew";
-						updateFields[0][1] = "false";
-						DynamoDBService.getInstance().update(oldID, updateFields);
 					}
 					Doc doc = new Doc(id, url, new Date(), md5);
 					docMap.put(url, doc);
@@ -178,18 +169,8 @@ public class StorageFactory {
 				}
 
 				@Override
-				public boolean ifMD5Exists(String content) {
-					StringBuilder sb = new StringBuilder();
-					MessageDigest md;
-					try {
-						md = MessageDigest.getInstance("MD5");
-						byte[] hashInBytes = md.digest(content.getBytes());
-						for (byte b : hashInBytes) sb.append(String.format("%02x", b));
-						return md5Map.containsKey(sb.toString());
-					} catch (NoSuchAlgorithmException e) {
-						e.printStackTrace();
-						return false;
-					}
+				public boolean ifMD5Exists(String md5) {
+						return md5Map.containsKey(md5);
 				}
 
 

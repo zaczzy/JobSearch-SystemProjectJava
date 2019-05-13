@@ -1,7 +1,6 @@
 package crawler;
 
 import crawler.info.RobotsTxtInfo;
-import model.CrawlerConfig;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichSpout;
@@ -65,25 +64,19 @@ public class CrawlerQueueSpout implements IRichSpout {
 	@Override
 	public void nextTuple() {
 		CrawlerTask nextTask = (CrawlerTask)QueueFactory.getQueueInstance().poll();
-		if (nextTask == null) {
-			if (CrawlerConfig.bufEmpty() && QueueFactory.getQueueInstance().isEmpty()) {
-				CrawlerConfig.setWhetherEnd(true);
-			}
-		} else {
+		if (nextTask != null) {
 			RobotsTxtInfo robotsTxtInfo = nextTask.getRobotsTxtInfo();
 			if (robotsTxtInfo != null && (robotsTxtInfo.getCrawlDelay("cis455crawler") != -1 || robotsTxtInfo.getCrawlDelay("*") != -1)) {
 				//If have to wait
 				double waitTime = robotsTxtInfo.getCrawlDelay("*");
 				waitTime = robotsTxtInfo.getCrawlDelay("cis455crawler") == -1 ? waitTime : robotsTxtInfo.getCrawlDelay("cis455crawler");
 				if (new Date().getTime() - (waitTime * 1000) < nextTask.getAddTime().getTime()) {
-					QueueFactory.getQueueInstance().add(nextTask);
+					QueueFactory.getQueueInstance().offer(nextTask);
 				} else {
-					CrawlerConfig.increamentBuf();
 					this.collector.emit(new Values(nextTask.getUrl()));
 //					log.debug(getExecutorId() + " emitting " + nextTask.getUrl());
 				}
 			} else {
-				CrawlerConfig.increamentBuf();
 				this.collector.emit(new Values(nextTask.getUrl()));
 //				log.debug(getExecutorId() + " emitting " + nextTask.getUrl());
 			}

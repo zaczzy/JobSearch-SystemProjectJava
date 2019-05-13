@@ -44,11 +44,11 @@ public class DocUploadBolt implements IRichBolt {
 		URLInfo info = new URLInfo(url);
 		String docID = input.getStringByField("id");
 		try {
-			S3Service.getInstance().putFile("test3/" + docID + suffix, content);
+			S3Service.getInstance().putFile("test5/" + docID + suffix, content);
 			System.out.println("Upload " + url);
 			String[][] fields = new String[4][2];
 			fields[0][0] = "url";
-			fields[0][1] = input.getStringByField("url");
+			fields[0][1] = url;
 			fields[1][0] = "host";
 			fields[1][1] = info.getHostName();
 			fields[2][0] = "added time";
@@ -57,7 +57,7 @@ public class DocUploadBolt implements IRichBolt {
 			fields[3][1] = "true";
 			DynamoDBService.getInstance().put(docID, fields);
 			CrawlerConfig.incPagesStored();
-		} catch (IOException | software.amazon.awssdk.core.exception.SdkClientException e) {
+		} catch (IOException | java.lang.RuntimeException e) {
 			e.printStackTrace();
 		}
 	}

@@ -26,13 +26,19 @@ public class LinkExtractorBolt implements IRichBolt {
 	String executorId = UUID.randomUUID().toString();
 	Fields schema = new Fields("url");
 
+	FileWriter fr;
+
 
 	/**
 	 * Called when a bolt is about to be shut down
 	 */
 	@Override
 	public void cleanup() {
-
+		try {
+			fr.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -47,11 +53,7 @@ public class LinkExtractorBolt implements IRichBolt {
 			Document doc = Jsoup.parse(input.getStringByField("content"));
 			Elements links = doc.select("a[href]");
 			addNextPage(input.getStringByField("url"), links);
-			if (CrawlerConfig.bufEmpty() && QueueFactory.getQueueInstance().isEmpty()) {
-				CrawlerConfig.setWhetherEnd(true);
-			}
 		}
-		CrawlerConfig.decreamentBuf();
 	}
 
 	/**
@@ -64,6 +66,11 @@ public class LinkExtractorBolt implements IRichBolt {
 	@Override
 	public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
 		this.collector = collector;
+		try {
+			fr = new FileWriter(new File(CrawlerConfig.getLinksFileLocation()), true);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 
@@ -99,7 +106,14 @@ public class LinkExtractorBolt implements IRichBolt {
 		for (Element e : links) {
 			CrawlerConfig.increamentBuf();
 			String nextUrl = e.attr("abs:href");
-			if (!FilterSharedFactory.outerLinkSet.contains(nextUrl)) {
+			if (!FilterSharedFactory.outerLinkSet.contains(nextUrl)
+							&& !nextUrl.contains("?")
+							&& nextUrl.startsWith("https://")
+							&& !nextUrl.contains("login")
+							&& !nextUrl.contains("submit")
+							&& !nextUrl.contains("redirect")
+							&& !nextUrl.contains("account")
+							&& nextUrl.length() < 80) {
 				collector.emit(new Values(nextUrl));
 				FilterSharedFactory.outerLinkSet.add(nextUrl);
 				writeLocalLinksFile(url, nextUrl);
@@ -110,10 +124,7 @@ public class LinkExtractorBolt implements IRichBolt {
 
 	private void writeLocalLinksFile(String from, String to) {
 		try {
-			File file = new File(CrawlerConfig.getLinksFileLocation());
-			FileWriter fr = new FileWriter(file, true);
 			fr.write(from + "\t" + to + "\n");
-			fr.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

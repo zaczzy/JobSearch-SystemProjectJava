@@ -6,6 +6,7 @@ import crawler.QueueFactory;
 import crawler.RobotsHelper;
 import crawler.info.RobotsTxtInfo;
 import crawler.info.URLInfo;
+import model.CrawlerConfig;
 import spark.HaltException;
 import spark.Request;
 import spark.Response;
@@ -32,6 +33,7 @@ public class AddURLHandler implements Route {
       }
     }
     CrawlerTask task = new CrawlerTask(url, robotsTxtInfo);
+    CrawlerConfig.incRequestReceived();
     QueueFactory.getQueueInstance().add(task);
     return "";
   }
