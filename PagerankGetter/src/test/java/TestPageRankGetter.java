@@ -1,4 +1,4 @@
-import dynamodb.PageRankGetter;
+import aws.dynamodb.PageRankGetter;
 import org.junit.Test;
 
 public class TestPageRankGetter {
@@ -9,6 +9,5 @@ public class TestPageRankGetter {
 
     @Test
     public void testAll() throws InterruptedException {
-        PageRankGetter.getAll();
     }
 }
