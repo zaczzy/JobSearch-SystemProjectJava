@@ -1,3 +1,4 @@
+import cache.CacheService;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
@@ -9,6 +10,8 @@ public class Main {
     public static void main(String[] args) {
         port(8085);
         CorsFilter.apply();
+
+        CacheService.getInstance();
 
         /* Fake Results for testing Peacock Frontend*/
         get("fake", (req, res) -> {
@@ -32,9 +35,13 @@ public class Main {
             }
         });
 
-        /* Real Query Endpoint */
+        // The following code is used with cache
         get("advanced", (req, res) -> {
             String query = req.queryParams("query");
+            if (CacheService.getInstance().readQueryCache(query) != null) {
+                res.type("application/json");
+                return CacheService.getInstance().readQueryCache(query);
+            }
             System.out.println("advanced" + query);
             try {
                 res.type("application/json");
@@ -42,7 +49,8 @@ public class Main {
                 JSONObject jobj = new JSONObject();
                 jobj.put("results", agent.getResults());
                 jobj.put("total", agent.getNumResultsFound());
-                return JSON.toJSONString(jobj);
+                CacheService.getInstance().writeQueryCache(query, JSON.toJSONString(agent.getResults()));
+                return jobj;
             } catch (Exception e) {
                 e.printStackTrace();
                 return "Fucked up";
