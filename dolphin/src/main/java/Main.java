@@ -1,4 +1,5 @@
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 
 import static spark.Spark.get;
 import static spark.Spark.port;
@@ -38,7 +39,10 @@ public class Main {
             try {
                 res.type("application/json");
                 AdvancedAgent agent = new AdvancedAgent(query);
-                return JSON.toJSONString(agent.getResults());
+                JSONObject jobj = new JSONObject();
+                jobj.put("results", agent.getResults());
+                jobj.put("total", agent.getNumResultsFound());
+                return JSON.toJSONString(jobj);
             } catch (Exception e) {
                 e.printStackTrace();
                 return "Fucked up";

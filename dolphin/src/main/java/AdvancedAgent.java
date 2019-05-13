@@ -155,6 +155,10 @@ public class AdvancedAgent {
         return sr;
     }
 
+    public int getNumResultsFound() {
+        return ranks.size() + finalRanking.size();
+    }
+
     private class DocumentRank{
         String docId; double score;
         public DocumentRank(String docId, double score) {
@@ -178,7 +182,7 @@ public class AdvancedAgent {
         public void run() {
             DB db = new DB("default");
             db.open(Credentials.jdbcDriver, Credentials.dbUrl, Credentials.dbUser, Credentials.dbUserPW);
-            List<Keyword> keywords = Keyword.findBySQL("SELECT * FROM keywords WHERE word='" + word +"' ORDER BY wtf LIMIT 1500");
+            List<Keyword> keywords = Keyword.findBySQL("SELECT * FROM keywords WHERE word='" + word +"' ORDER BY wtf LIMIT 5000");
             queryWordToIdf.put(word, getIDF(keywords));
             queryWordToWtf.put(word, queryWordToWtf.get(word) * queryWordToIdf.get(word));
             keywords.stream().forEach((entry) -> {
