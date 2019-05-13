@@ -52,7 +52,7 @@ class SearchBar extends Component {
     this.props.dispatch(startSearch())
     this.props.dispatch(startWebSearch())
     /* Query Dolphin Engine */
-    fetch('http://localhost:8085/real?query=' + value)
+    fetch('http://128.197.225.126/advanced?query=' + value)
       .then(function(response) {
         return response.json();
       })
@@ -60,7 +60,7 @@ class SearchBar extends Component {
         this.props.dispatch(setResults(json));
       }.bind(this));
       
-    fetch('http://localhost:8083/h/' + value, {method: 'POST'})
+    fetch('http://104.248.224.168:8080/h/' + value, {method: 'POST'})
       .then(function(response) {
         return response.json();
 
@@ -69,7 +69,7 @@ class SearchBar extends Component {
         console.log(json)
       })
 
-    fetch('http://localhost:8083/?q=' + value)
+    fetch('http://104.248.224.168:8080/?q=' + value)
       .then(function(response) {
         return response.json();
       })
