@@ -10,6 +10,7 @@ const defaultState = {
 
 const ResultsReducer = (state = defaultState, action) => {
   switch (action.type) {
+
     case Actions.START_SEARCH:
       return {
         ...state,
@@ -18,11 +19,12 @@ const ResultsReducer = (state = defaultState, action) => {
         SEARCH_RESULTS : [{}, {}, {}]
       }
     case Actions.SET_RESULTS:
+      console.log(action)
       return {
         ...state,
         IS_LOADING : false,
-        SEARCH_RESULTS : action.data,
-        NUM_RESULTS : action.data.length,
+        SEARCH_RESULTS : action.data.results,
+        NUM_RESULTS : action.data.total,
         TIME_TO_RESULT: (new Date()).getTime() - state.SEARCH_START,
         SEARCH_START: 0
       }
