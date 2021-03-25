@@ -1,4 +1,4 @@
-# Askme.fyi - UPenn CIS-555 Final Project
+# Askme.fyi - A Search Engine in Java
 
 ## Members
 1. Han Yan
