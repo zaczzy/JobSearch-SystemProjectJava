@@ -1,3 +1,7 @@
+Edit notes from Zach
+This is a final snapshot of an old project. This repo solely exists to provide code samples to potential employers. It is the third systems project I referenced in my resume.
+
+Original README:
 # Askme.fyi - A Search Engine in Java
 
 ## Members
