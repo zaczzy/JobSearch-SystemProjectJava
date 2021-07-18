@@ -16,7 +16,7 @@ public class TestGetJSON {
     @Test
     public void testWalmartAbnormal() throws IOException {
         String query = "air";
-        URL url = new URL("http://api.walmartlabs.com/v1/search?apiKey=***REMOVED***&query=" + query);
+        URL url = new URL("http://api.walmartlabs.com/v1/search?apiKey=**REMOVED**" + query);
         URLConnection con = url.openConnection();
         InputStream in = con.getInputStream();
         String encoding = con.getContentEncoding();

@@ -138,7 +138,7 @@ public class APIServer {
         System.out.println(query);
         URL url;
         try {
-            url = new URL("http://api.openweathermap.org/data/2.5/weather?appid=***REMOVED***&q=" + query);
+            url = new URL("http://api.openweathermap.org/data/2.5/weather?appid=REMOVED" + query);
         } catch (MalformedURLException e) {
             e.printStackTrace();
             return null;
@@ -181,7 +181,7 @@ public class APIServer {
     public static String getWalmart(String query) {
         System.out.println(query);
         try {
-            URL url = new URL("http://api.walmartlabs.com/v1/search?apiKey=***REMOVED***&query=" + query);
+            URL url = new URL("http://api.walmartlabs.com/v1/search?apiKey=**Removed**" + query);
             URLConnection con = url.openConnection();
             InputStream in = con.getInputStream();
             String encoding = con.getContentEncoding();
